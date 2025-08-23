@@ -1,68 +1,56 @@
-# AI-Powered Identity Verification and Fraud Detection for KYC_FRONTEND_TEAM-A
+# AI Powered KYC Verification
+## by shubham sharma (group-A)
+## Overview
+This project generates sample Aadhaar PDFs and processes them to extract information such as name, address, and Aadhaar number using OCR, then stores the results in CSV/JSON format.
 
-Build a smart AI system that:
+## Pipeline
+1. **Data Collection**
+   - Synthetic Aadhaar PDFs are generated for testing using `aadhar_generator.py`.
+2. **Preprocessing**
+   - PDFs and images are converted to JPG.
+   - Noise removal and image enhancement.
+3. **OCR Extraction**
+   - Tesseract OCR is used to extract text.
+4. **Field Extraction**
+   - Name, address, and Aadhaar number are parsed from the text.
+5. **Output**
+   - Extracted data saved as CSV .
 
-Verifies customer identity using documents like Aadhaar.
-
-Detects fraud, especially fake or mismatched addresses.
-
-Ensures banks comply with KYC and AML rules.
-
-Reduces manual verification efforts.
-
-## Technologies Involved:
-NLP (via Azure OpenAI): Read and understand text on documents.
-
-Computer Vision: Check document layout, format, and tampering.
-
-GNN (Graph Neural Networks): Spot fake identities by analyzing relationships between data points.
-
-Azure or Local Deployment: Secure deployment and compliance-ready logging.
-
-
-Tasks:
-Containerize models using Docker (intro level).
-
-Use synthetic Aadhaar data to validate system.
-
-Build a report: number of frauds flagged, accuracy, false positives, etc.
-
-If Azure is used, test model deployment via Azure ML or App Services.
-
-##Tools & Stack Suggestions :-
-
-OCR: Tesseract, EasyOCR
-
-NLP: Azure OpenAI, LangChain, HuggingFace Transformers
-
-CV: OpenCV, CNN (ResNet)
-
-GNN: PyTorch Geometric / DGL
-
-Backend: Flask or FastAPI
-
-Deployment: Docker + Streamlit (optional UI)
-
-Data: Synthetic Aadhaar/Utility docs or sample KYC data
-
-Version Control: Git + GitHub for collaboration
-
-## Suggested Folder Structure :-
-
+## Folder Structure
+```
 project_root/
 │
-├── data/
-│   ├── raw_docs/
-│   ├── processed_data.csv
-│
-├── ocr/
-│   ├── ocr_extractor.py
-│   └── field_extractor.py
-│
-├── utils/
-│   └── cleaning_utils.py
-│
-├── README.md
-└── requirements.txt
+├─ data/
+│  ├─ raw_docs/
+│  │  ├─ aadhaar_pdf/
+│  │  └─ aadhaar_img/
+│  └─ processed_data.csv
+├─ ocr/
+│  ├─ ocr_extractor.py
+│  └─ field_extractor.py
+├─ utils/
+│  └─ cleaning_utils.py
+├─ main.py
+|_ aadhar_generator.py
+└─ README.md
 
+
+
+## How to Run
+```bash
+python main.py
+
+
+Dependencies
+
+Python 3.x
+
+pytesseract
+
+pdf2image
+
+PIL
+opencv-python
+faker
+fpdf
 
