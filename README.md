@@ -1,68 +1,39 @@
-# AI-Powered Identity Verification and Fraud Detection for KYC_FRONTEND_TEAM-A
+# 📑 Synthetic Aadhaar OCR Project
 
-Build a smart AI system that:
+## 📌 Project Overview
+This project demonstrates an **AI-powered document processing pipeline** for **KYC compliance**.  
+It focuses on creating and processing **synthetic Aadhaar documents** (not real IDs).
 
-Verifies customer identity using documents like Aadhaar.
+The pipeline covers:
+1. **Synthetic Data Generation** → Create fake Aadhaar-like PDFs using `Faker` in Python.  
+2. **OCR Processing** → Convert PDFs → images and extract raw text using `pytesseract` with OpenCV.  
+3. **Structured Field Extraction** → Parse raw OCR text to extract important fields:  
+   - **Name**  
+   - **Aadhaar Number**  
+   - **Address**  
+   Results are saved in both **CSV** and **JSON** formats.
 
-Detects fraud, especially fake or mismatched addresses.
+⚠️ **Note:**  
+All Aadhaar numbers and personal details are **synthetic** (randomly generated).  
+They are intended **only for testing and research purposes**.
 
-Ensures banks comply with KYC and AML rules.
+---
+Also install Tesseract OCR engine
 
-Reduces manual verification efforts.
+## 📂 Project Structure
 
-## Technologies Involved:
-NLP (via Azure OpenAI): Read and understand text on documents.
-
-Computer Vision: Check document layout, format, and tampering.
-
-GNN (Graph Neural Networks): Spot fake identities by analyzing relationships between data points.
-
-Azure or Local Deployment: Secure deployment and compliance-ready logging.
-
-
-Tasks:
-Containerize models using Docker (intro level).
-
-Use synthetic Aadhaar data to validate system.
-
-Build a report: number of frauds flagged, accuracy, false positives, etc.
-
-If Azure is used, test model deployment via Azure ML or App Services.
-
-##Tools & Stack Suggestions :-
-
-OCR: Tesseract, EasyOCR
-
-NLP: Azure OpenAI, LangChain, HuggingFace Transformers
-
-CV: OpenCV, CNN (ResNet)
-
-GNN: PyTorch Geometric / DGL
-
-Backend: Flask or FastAPI
-
-Deployment: Docker + Streamlit (optional UI)
-
-Data: Synthetic Aadhaar/Utility docs or sample KYC data
-
-Version Control: Git + GitHub for collaboration
-
-## Suggested Folder Structure :-
-
-project_root/
-│
-├── data/
-│   ├── raw_docs/
-│   ├── processed_data.csv
-│
-├── ocr/
-│   ├── ocr_extractor.py
-│   └── field_extractor.py
-│
-├── utils/
-│   └── cleaning_utils.py
-│
-├── README.md
-└── requirements.txt
-
-
+project-root/
+├─ data/
+│  └─ synthetic_aadhaar/
+│     ├─ pdfs/                       # Synthetic Aadhaar PDFs (generated with Faker)
+│     ├─ images/                     # PDFs converted into images for OCR
+│     ├─ metadata/
+│     │  ├─ synthetic_aadhaar_metadata.csv   # Metadata used to generate PDFs
+│     │  ├─ parsed_aadhaar.csv              # Extracted fields (CSV)
+│     │  └─ parsed_aadhaar.json             # Extracted fields (JSON)
+│     ├─ code/
+│     │  ├─ generate_synthetic_ids.py       # Script to generate synthetic PDFs
+│     │  ├─ pdf_to_images.py                # Convert PDFs → images
+│     │  ├─ run_ocr.py                      # OCR raw text extraction
+│     │  └─ extract_fields.py               # Extract Name, Aadhaar Number, Address
+│     └─ README.md
