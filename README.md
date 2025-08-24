@@ -22,11 +22,18 @@ They are intended **only for testing and research purposes**.
 ✅ Also install **Tesseract OCR engine** for text extraction.
 
 ## 📂 Project Structure  
-project-root/ ├─ data/ │  └─ synthetic_aadhaar/ │     ├─ pdfs/
+```
+project-root/
+├─ data/
+│  └─ synthetic_aadhaar/
+│     ├─ pdfs/
 │     ├─ images/
-│     ├─ metadata/ │     │  ├─ synthetic_aadhaar_metadata.csv
-│     │  ├─ parsed_aadhaar.csv
-│     ├─ code/ │     │  ├─ generate_synthetic_ids.py
+│     ├─ metadata/
+│     │  ├─ synthetic_aadhaar_metadata.csv
+│     │  └─ parsed_aadhaar.csv
+│     ├─ code/
+│     │  ├─ generate_synthetic_ids.py
 │     │  ├─ pdf_to_images.py
 │     │  └─ extract_fields.py
 │     └─ README.md
+```    └─ README.md
