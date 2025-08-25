@@ -1,18 +1,14 @@
 from faker import Faker
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import A4
-import random, os, csv
+from PIL import Image, ImageDraw
+import random, os
 
 fake = Faker("en_IN")
-os.makedirs("synthetic_aadhaar", exist_ok=True)
-
-# CSV setup
-csv_file = "synthetic_aadhaar/aadhaar_data.csv"
-fields = ["Name", "DOB", "Gender", "Address", "Aadhaar_No"]
-rows = []
+os.makedirs("synthetic_aadhaar_images", exist_ok=True)
 
 def make_fake_aadhaar(filename):
-    c = canvas.Canvas(filename, pagesize=A4)
+    # Create blank white image
+    img = Image.new("RGB", (600, 400), "white")
+    draw = ImageDraw.Draw(img)
 
     # Fake details
     name = fake.name()
@@ -22,41 +18,73 @@ def make_fake_aadhaar(filename):
     aadhaar_no = " ".join([str(random.randint(1000, 9999)) for _ in range(3)])
 
     # Header
-    c.setFont("Helvetica-Bold", 16)
-    c.drawCentredString(300, 800, "भारत सरकार / GOVERNMENT OF INDIA")
+    draw.text((150, 20), "भारत सरकार / GOVERNMENT OF INDIA", fill="black")
 
-    # Insert placeholder photo
-    c.rect(50, 650, 100, 120)  # photo box
+    # Placeholder photo box
+    draw.rectangle([30, 100, 130, 220], outline="black", width=2)
 
     # User details
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(180, 730, f"Name: {name}")
-    c.drawString(180, 710, f"DOB: {dob}")
-    c.drawString(180, 690, f"Gender: {gender}")
-    c.drawString(180, 670, f"Address: {address}")
+    draw.text((160, 100), f"Name: {name}", fill="black")
+    draw.text((160, 130), f"DOB: {dob}", fill="black")
+    draw.text((160, 160), f"Gender: {gender}", fill="black")
+    draw.text((160, 190), f"Address: {address}", fill="black")
 
     # Aadhaar Number
-    c.setFont("Helvetica-Bold", 14)
-    c.drawCentredString(300, 620, aadhaar_no)
+    draw.text((200, 250), aadhaar_no, fill="black")
 
     # Footer
-    c.setFont("Helvetica", 12)
-    c.drawCentredString(300, 600, "मेरा आधार, मेरी पहचान")
+    draw.text((200, 300), "मेरा आधार, मेरी पहचान", fill="black")
 
-    c.save()
+    # Save as image
+    img.save(filename)
 
-    # Save record into CSV rows
-    rows.append([name, dob, gender, address, aadhaar_no])
-
-
-# Generate 20 Aadhaar PDFs
+# Generate 20 Aadhaar-style images
 for i in range(1, 21):
-    make_fake_aadhaar(f"synthetic_aadhaar/aadhaar_{i}.pdf")
+    make_fake_aadhaar(f"synthetic_aadhaar_images/aadhaar_{i}.png")
 
-# Write all data into CSV
-with open(csv_file, "w", newline="", encoding="utf-8") as f:
-    writer = csv.writer(f)
-    writer.writerow(fields)
-    writer.writerows(rows)
+print("✅ Generated 20 Aadhaar-style images in synthetic_aadhaar_images/")
+from faker import Faker
+from PIL import Image, ImageDraw
+import random, os
 
-print("✅ Generated 20 Aadhaar PDFs + aadhaar_data.csv")
+fake = Faker("en_IN")
+os.makedirs("synthetic_aadhaar_images", exist_ok=True)
+
+def make_fake_aadhaar(filename):
+    # Create blank white image
+    img = Image.new("RGB", (600, 400), "white")
+    draw = ImageDraw.Draw(img)
+
+    # Fake details
+    name = fake.name()
+    dob = fake.date_of_birth(minimum_age=18, maximum_age=60).strftime("%d-%m-%Y")
+    gender = random.choice(["Male", "Female", "Other"])
+    address = fake.address().replace("\n", ", ")
+    aadhaar_no = " ".join([str(random.randint(1000, 9999)) for _ in range(3)])
+
+    # Header
+    draw.text((150, 20), "भारत सरकार / GOVERNMENT OF INDIA", fill="black")
+
+    # Placeholder photo box
+    draw.rectangle([30, 100, 130, 220], outline="black", width=2)
+
+    # User details
+    draw.text((160, 100), f"Name: {name}", fill="black")
+    draw.text((160, 130), f"DOB: {dob}", fill="black")
+    draw.text((160, 160), f"Gender: {gender}", fill="black")
+    draw.text((160, 190), f"Address: {address}", fill="black")
+
+    # Aadhaar Number
+    draw.text((200, 250), aadhaar_no, fill="black")
+
+    # Footer
+    draw.text((200, 300), "मेरा आधार, मेरी पहचान", fill="black")
+
+    # Save as image
+    img.save(filename)
+
+# Generate 20 Aadhaar-style images
+for i in range(1, 21):
+    make_fake_aadhaar(f"synthetic_aadhaar_images/aadhaar_{i}.png")
+
+print("✅ Generated 20 Aadhaar-style images in synthetic_aadhaar_images/")
