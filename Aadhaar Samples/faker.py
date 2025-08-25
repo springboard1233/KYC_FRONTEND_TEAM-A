@@ -1,3 +1,4 @@
+!pip install faker pillow
 from faker import Faker
 from PIL import Image, ImageDraw
 import random, os
