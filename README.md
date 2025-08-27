@@ -1,39 +1,38 @@
-# 📑 Synthetic Aadhaar   
-👤 By **THIRUPATHI**
+# Aadhaar/PAN KYC Document Upload React App
 
-## 📌 Task Overview  
-This project demonstrates an **AI-powered document processing pipeline** for **KYC compliance**.  
-It focuses on creating and processing **synthetic Aadhaar documents** (not real IDs).
+This is a simple React application to upload Aadhaar or PAN documents for KYC processing. It provides a user-friendly interface for file upload with validation and displays extracted data results from a backend API.
 
-The pipeline covers:  
-1. **Synthetic Data Generation** → Create fake Aadhaar-like PDFs using `Faker` in Python.  
-2. **OCR Processing** → Convert PDFs → images and extract raw text using `pytesseract` with OpenCV.  
-3. **Structured Field Extraction** → Parse raw OCR text to extract important fields:  
-   - **Name**  
-   - **Aadhaar Number**  
-   - **Address**  
-   Results are saved in both **CSV** and **JSON** formats.
+---
 
-⚠️ **Note:**  
-All Aadhaar numbers and personal details are **synthetic** (randomly generated).  
-They are intended **only for testing and research purposes**.
+## Features
 
----  
-✅ Also install **Tesseract OCR engine** for text extraction.
+- User authentication with login page
+- File upload with validation (PDF, JPG, PNG; max 2MB)
+- Upload progress indication
+- Display extracted Aadhaar/PAN data on result page
+- Smooth page transitions with Framer Motion animations
+- Routing with React Router v6
 
-## 📂 Project Structure  
-```
-project-root/
-├─ data/
-│  └─ synthetic_aadhaar/
-│     ├─ pdfs/
-│     ├─ images/
-│     ├─ metadata/
-│     │  ├─ synthetic_aadhaar_metadata.csv
-│     │  └─ parsed_aadhaar.csv
-│     ├─ code/
-│     │  ├─ generate_synthetic_ids.py
-│     │  ├─ pdf_to_images.py
-│     │  └─ extract_fields.py
-│     └─ README.md
-```    └─ README.md
+---
+
+## Tech Stack
+
+- React (with hooks and functional components)
+- React Router v6 for navigation
+- React Hook Form for form handling
+- Framer Motion for smooth animations
+- Axios for HTTP requests
+- Tailwind CSS v4 for styling
+- Python Flask (sample/mock backend for testing)
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js and npm installed on your machine
+- (Optional) Running backend API on `http://localhost:5000`
+
+
+
