@@ -3,14 +3,14 @@ import { useForm } from "react-hook-form";
 import { useAuth } from "../hooks/AuthProvider";
 import { motion } from "framer-motion";
 
-export default function Login() {
+export default function Signup() {
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm();
 
-  const { login } = useAuth();
+  const { signup } = useAuth();
 
   return (
     <motion.div
@@ -24,9 +24,21 @@ export default function Login() {
         animate={{ y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <h2 className="text-2xl font-bold text-center mb-6">Login</h2>
+        <h2 className="text-2xl font-bold text-center mb-6">Sign Up</h2>
 
-        <form onSubmit={handleSubmit(login)} className="space-y-4">
+        <form onSubmit={handleSubmit(signup)} className="space-y-4">
+          <div>
+            <label className="block mb-1 text-gray-700">Username</label>
+            <input
+              type="text"
+              {...register("username", { required: "Username is required" })}
+              className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
+            />
+            {errors.username && (
+              <p className="text-red-500 text-sm mt-1">{errors.username.message}</p>
+            )}
+          </div>
+
           <div>
             <label className="block mb-1 text-gray-700">Email</label>
             <input
@@ -67,17 +79,17 @@ export default function Login() {
             type="submit"
             className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600 transition duration-300"
           >
-            Login
+            Sign Up
           </button>
         </form>
 
         <p className="text-sm text-center mt-4">
-          Don't have an account?{" "}
+          Already have an account?{" "}
           <button
-            onClick={() => window.location.href = "/signup"}
+            onClick={() => window.location.href = "/login"}
             className="text-blue-500 hover:underline"
           >
-            Sign up here
+            Login here
           </button>
         </p>
       </motion.div>
