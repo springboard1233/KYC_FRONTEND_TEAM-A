@@ -3,7 +3,7 @@
 import os
 import csv
 from ocr.ocr_extractor import convert_to_jpg, extract_text
-from ocr.field_extractor import parse_fields
+from ocr.field_extractor import parse_aadhar_details
 from utils.cleaning_utils import standardize_indian_address
 
 DATA_DIR = "data/raw_docs/aadhar"
@@ -23,7 +23,7 @@ def process_documents():
             text = extract_text(jpg_path)
 
             # Step 2: Field Extraction
-            fields = parse_fields(text)
+            fields = parse_aadhar_details(text)
 
             # Step 3: Cleaning (standardize address & PIN)
             if "Address" in fields:
