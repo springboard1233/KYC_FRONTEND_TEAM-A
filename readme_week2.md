@@ -1,5 +1,5 @@
 
-KYC Backend API - README (please do not change code in my branch , my contribution to team A backend Part)
+KYC Backend API - README (please do not change code in my branch , my contribution to team A backend Part).
 
 This project provides backend APIs for Aadhaar KYC verification and user authentication using Flask and MongoDB. Frontend developers can use these endpoints to design the web pages (home.html, login.html, signup.html).
 
