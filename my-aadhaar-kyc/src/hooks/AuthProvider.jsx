@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-
+import apiClient from "../utils/apiClient"; // Axios instance
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
@@ -8,33 +8,49 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(localStorage.getItem("token") || "");
   const navigate = useNavigate();
 
-  // On mount, optionally verify token / fetch user info
   useEffect(() => {
     if (token) {
-      // Mock: set user info if token exists, replace with API call as needed
-      setUser({ email: "user@example.com" });
+      setUser({ email: "user@example.com" }); // temporary placeholder, replace with backend fetch if needed
     }
   }, [token]);
 
   async function signup(data) {
-    console.log("Signup called with", data);
-    // TODO: Replace with real signup API call
-
-    // After successful signup, navigate to login page
-    navigate("/login");
+    try {
+      const response = await apiClient.post("/signup", {
+        username: data.username,
+        email: data.email,
+        password: data.password,
+      });
+      alert(response.data.message || "Signup successful");
+      navigate("/login");
+    } catch (error) {
+      if (error.response && error.response.data) {
+        alert(error.response.data.message || "Signup failed");
+      } else {
+        alert("Signup failed. Please try again.");
+      }
+    }
   }
 
   async function login(data) {
-    console.log("Login called with", data);
-    // TODO: Replace with real login API call and token retrieval
-
-    // Mock login success
-    const fakeToken = "fake-jwt-token";
-    localStorage.setItem("token", fakeToken);
-    setToken(fakeToken);
-    setUser({ email: data.email });
-
-    navigate("/upload");
+    try {
+      const response = await apiClient.post("/login", {
+        username: data.username,
+        password: data.password,
+      });
+      alert(response.data.message || "Login successful");
+      const fakeToken = "fake-jwt-token";
+      localStorage.setItem("token", fakeToken);
+      setToken(fakeToken);
+      setUser({ username: data.username });
+      navigate("/upload");
+    } catch (error) {
+      if (error.response && error.response.data) {
+        alert(error.response.data.message || "Login failed");
+      } else {
+        alert("Login failed. Please try again.");
+      }
+    }
   }
 
   function logout() {

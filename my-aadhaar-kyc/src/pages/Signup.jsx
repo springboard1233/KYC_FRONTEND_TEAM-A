@@ -19,13 +19,12 @@ export default function Signup() {
       animate={{ opacity: 1 }}
     >
       <motion.div
-        className="bg-white shadow-lg rounded-lg p-8 w-full max-w-md"
+        className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md"
         initial={{ y: -50 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <h2 className="text-2xl font-bold text-center mb-6">Sign Up</h2>
-
+        <h2 className="text-2xl font-bold mb-6 text-center">Sign Up</h2>
         <form onSubmit={handleSubmit(signup)} className="space-y-4">
           <div>
             <label className="block mb-1 text-gray-700">Username</label>
@@ -38,7 +37,6 @@ export default function Signup() {
               <p className="text-red-500 text-sm mt-1">{errors.username.message}</p>
             )}
           </div>
-
           <div>
             <label className="block mb-1 text-gray-700">Email</label>
             <input
@@ -56,17 +54,13 @@ export default function Signup() {
               <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
             )}
           </div>
-
           <div>
             <label className="block mb-1 text-gray-700">Password</label>
             <input
               type="password"
               {...register("password", {
                 required: "Password is required",
-                minLength: {
-                  value: 6,
-                  message: "Password must be at least 6 characters",
-                },
+                minLength: { value: 6, message: "At least 6 characters required" },
               })}
               className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
             />
@@ -74,7 +68,6 @@ export default function Signup() {
               <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>
             )}
           </div>
-
           <button
             type="submit"
             className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600 transition duration-300"
@@ -82,8 +75,7 @@ export default function Signup() {
             Sign Up
           </button>
         </form>
-
-        <p className="text-sm text-center mt-4">
+        <p className="text-center mt-4 text-sm">
           Already have an account?{" "}
           <button
             onClick={() => window.location.href = "/login"}
