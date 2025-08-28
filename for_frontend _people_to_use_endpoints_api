@@ -1,0 +1,159 @@
+API Integration Guide for Frontend people 
+
+1. Signup Page (signup.html)
+
+Button: Submit
+
+API: POST /api/signup
+
+Payload (JSON):
+
+{
+    "username": "<username>",
+    "email": "<email>",
+    "password": "<password>"
+}
+
+
+Response:
+
+{"message": "User registered successfully!"}
+
+
+Notes:
+
+Display the message to the user.
+
+If status code is 400, show error "Username already exists".
+
+2. Login Page (login.html)
+
+Button: Login
+
+API: POST /api/login
+
+Payload (JSON):
+
+{
+    "username": "<username>",
+    "password": "<password>"
+}
+
+
+Response:
+
+{"message": "Login successful"}   // or
+{"message": "Wrong username or password"}
+
+
+Notes:
+
+On successful login, redirect to home.html.
+
+Handle 401 errors to show wrong username/password.
+
+3. Home Page (home.html)
+Aadhaar Section
+
+Upload/Extract Button
+
+API: POST /api/extract
+
+Form: multipart/form-data
+
+Key: file → selected Aadhaar file
+
+Response Example:
+
+{
+  "Name": "Hredhaan Naik",
+  "DOB": "03-09-1981",
+  "AadhaarNumber": "XXXX-XXXX-XXXX",
+  "Gender": "Male",
+  "Address": "29/592, Nagarajan Road, Ramagundam 879104"
+}
+
+
+Notes: Display extracted details on the page as preview section.
+
+Save Button
+
+API: POST /api/save
+
+Payload (JSON): Use the extracted Aadhaar details
+
+{
+  "Name": "<Name>",
+  "DOB": "<DOB>",
+  "AadhaarNumber": "<AadhaarNumber>",
+  "Gender": "<Gender>",
+  "Address": "<Address>"
+}
+
+
+Response:
+
+{"message": "Aadhaar details saved successfully!"}
+
+PAN Section
+
+Upload/Extract Button
+
+API: POST /api/extract_pan
+
+Form: multipart/form-data
+
+Key: file → selected PAN file
+
+Response Example:
+
+{
+  "Name": "Hredhaan Naik",
+  "FatherName": "Parent Name",
+  "PANNumber": "ABCDE1234F"
+}
+
+
+Notes: Display extracted details on the page.
+
+Save Button
+
+API: POST /api/save_pan
+
+Payload (JSON): Use the extracted PAN details
+
+{
+  "Name": "<Name>",
+  "FatherName": "<FatherName>",
+  "PANNumber": "<PANNumber>"
+}
+
+
+Response:
+
+{"message": "PAN details saved successfully!"}
+
+4. Optional: Fetch Aadhaar Records
+
+API: GET /api/record
+
+Response: List of all Aadhaar records
+
+[
+  {
+    "Name": "Hredhaan Naik",
+    "DOB": "03-09-1981",
+    "AadhaarNumber": "XXXX-XXXX-XXXX",
+    "Gender": "Male",
+    "Address": "29/592, Nagarajan Road, Ramagundam 879104"
+  },
+  ...
+]
+
+Frontend Notes
+
+Always show success/error messages returned by the API.
+
+Use fetch() or axios to call APIs from JavaScript.
+
+For file uploads, use FormData() and append('file', file) to send files.
