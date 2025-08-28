@@ -59,3 +59,29 @@ def extract_details(text):
 
 
 
+
+
+
+def pan_details(text):
+    data = {}
+
+    # --- PAN Number ---
+    pan_match = re.search(r"\b[A-Z]{5}[0-9]{4}[A-Z]\b", text)
+    if pan_match:
+        data["PANNumber"] = pan_match.group()
+
+    # --- Split text into lines ---
+    lines = [line.strip() for line in text.split("\n") if line.strip()]
+
+    # --- Extract Name (after line containing 'Name') ---
+    for i, line in enumerate(lines):
+        if re.search(r"Name", line, re.IGNORECASE):
+            if i + 1 < len(lines):
+                data["Name"] = lines[i + 1].strip()
+            if i + 3 < len(lines):  # father’s name usually 2 lines after
+                data["FatherName"] = lines[i + 3].strip()
+            break
+
+    return data
+
+

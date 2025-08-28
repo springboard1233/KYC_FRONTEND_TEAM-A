@@ -30,3 +30,15 @@ def extract_rawtxt(filepath):
         raise ValueError("Unsupported file type")
 
     return text
+
+
+def extract_pantxt(filepath):
+
+    text = ""
+
+    img = cv2.imread(filepath)
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    text = pytesseract.image_to_string(gray, config='--psm 6',lang="eng")
+
+    return text
+
