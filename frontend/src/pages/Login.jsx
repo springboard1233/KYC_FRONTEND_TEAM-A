@@ -6,6 +6,8 @@ import { useNavigate, Link } from "react-router-dom"
 import { login, RESET } from "../redux/features/authSlice"
 import { Container, Title, PrimaryButton, commonClassNameOfInput } from "../components/common/Design"
 import { toast } from "react-toastify"
+import Orb from "../components/reactComponents/Orb/Orb"
+
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -50,62 +52,74 @@ useEffect(() => {
 
 
   return (
-    <section className="pt-32 pb-16">
-      <Container>
-        <div className="max-w-md mx-auto p-8 rounded-lg shadow-s1 bg-gray-200 border border-gray-700">
-          <Title level={3} className="text-center mb-8">
-            Sign In
-          </Title>
+   <section className="pt-32 pb-16 bg-gradient-to-tr from-black to-gray-800 relative overflow-hidden h-screen">
+  {/* Orb Background */}
+  <div className="absolute inset-0 z-0">
+    <Orb
+      hoverIntensity={0.5}
+      rotateOnHover={true}
+      hue={0}
+      forceHoverState={false}
+    />
+  </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
-              </label>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                value={email}
-                onChange={handleInputChange}
-                className={commonClassNameOfInput}
-                placeholder="Enter your email"
-                required
-              />
-            </div>
+  <Container className="relative z-10">
+  <div className="max-w-md mx-auto p-8 rounded-lg">
+    <Title level={3} className="text-center mb-8 text-white">
+      Sign In
+    </Title>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                Password
-              </label>
-              <input
-                type="password"
-                id="password"
-                name="password"
-                value={password}
-                onChange={handleInputChange}
-                className={commonClassNameOfInput}
-                placeholder="Enter your password"
-                required
-              />
-            </div>
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div>
+        <label htmlFor="email" className="block text-sm font-medium text-white mb-2">
+          Email Address
+        </label>
+        <input
+          type="email"
+          id="email"
+          name="email"
+          value={email}
+          onChange={handleInputChange}
+          className="w-full px-4 py-2 rounded-md bg-white/10 text-white placeholder-gray-300 border border-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+          placeholder="Enter your email"
+          required
+        />
+      </div>
 
-            <PrimaryButton type="submit" className="w-full bg-purple-700" disabled={isLoading}>
-              {isLoading ? "Signing In..." : "Sign In"}
-            </PrimaryButton>
-          </form>
+      <div>
+        <label htmlFor="password" className="block text-sm font-medium text-white mb-2">
+          Password
+        </label>
+        <input
+          type="password"
+          id="password"
+          name="password"
+          value={password}
+          onChange={handleInputChange}
+          className="w-full px-4 py-2 rounded-md bg-white/10 text-white placeholder-gray-300 border border-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+          placeholder="Enter your password"
+          required
+        />
+      </div>
 
-          <div className="mt-6 text-center">
-            <p className="text-gray-600">
-              Don't have an account?{" "}
-              <Link to="/register" className="text-green hover:underline">
-                Sign up here
-              </Link>
-            </p>
-          </div>
-        </div>
-      </Container>
-    </section>
+      <PrimaryButton type="submit" className="w-full bg-purple-700" disabled={isLoading}>
+        {isLoading ? "Signing In..." : "Sign In"}
+      </PrimaryButton>
+    </form>
+
+    <div className="mt-6 text-center">
+      <p className="text-gray-300">
+        Don't have an account?{" "}
+        <Link to="/signup" className="text-green-400 hover:underline">
+          Sign up here
+        </Link>
+      </p>
+    </div>
+  </div>
+</Container>
+
+</section>
+
   )
 }
 

@@ -107,7 +107,7 @@ const LandingPage = () => {
       </div>
     </div>
   </section>
-  
+
   {/* FEATURES SECTION */}
   <section id="features" className="py-20">
     <div className="container mx-auto px-4 text-center">

@@ -147,4 +147,4 @@ export {
     CustomNavLinkList
 };
 
-export const commonClassNameOfInput = "w-full p-4 text-sm bg-white text-gray-900 border-gray-500";
+export const commonClassNameOfInput = "w-full p-4 text-sm bg-white text-gray-900 border-gray-500 border rounded-lg";

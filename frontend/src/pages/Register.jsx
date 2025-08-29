@@ -5,6 +5,7 @@ import { useNavigate, Link } from "react-router-dom"
 import { register, RESET } from "../redux/features/authSlice"
 import { Container, Title, PrimaryButton, commonClassNameOfInput } from "../components/common/Design"
 import { toast } from "react-toastify"
+import Prismatic from "../components/reactComponents/Prismatic/Prismatic"
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -59,94 +60,111 @@ useEffect(() => {
 }, [user, isSuccess, dispatch, navigate]);
 
   return (
-    <section className="pt-18 pb-16">
-      <Container>
-        <div className="max-w-md mx-auto bg-gray-200 border border-gray-700 p-8 rounded-lg shadow-s1">
-          <Title level={3} className="text-center mb-8">
-            Create Account
-          </Title>
+    <section className="relative pt-18 pb-16 bg-black">
+    {/* Background Layer */}
+    <div className="absolute inset-0 z-0">
+      <Prismatic
+        animationType="rotate3d"
+        intensity={2}
+        speed={0.5}
+        distort={1.0}
+        paused={false}
+        offset={{ x: 0, y: 0 }}
+        hoverDampness={0.25}
+        rayCount={24}
+        mixBlendMode="lighten"
+        colors={['#ff007a', '#4d3dff', '#ffffff']}
+      />
+    </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                Full Name
-              </label>
-              <input
-                type="text"
-                id="name"
-                name="name"
-                value={name}
-                onChange={handleInputChange}
-                className={commonClassNameOfInput}
-                placeholder="Enter your full name"
-                required
-              />
-            </div>
+  {/* Foreground Content */}
+  <Container className="relative z-10">
+    <div className="max-w-md mx-auto bg-gray-800/70 border border-gray-600 p-8 rounded-lg shadow-s1 backdrop-blur-sm text-white">
+      <Title level={3} className="text-center mb-8 text-white">
+        Create Account
+      </Title>
 
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
-              </label>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                value={email}
-                onChange={handleInputChange}
-                className={commonClassNameOfInput}
-                placeholder="Enter your email"
-                required
-              />
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                Password
-              </label>
-              <input
-                type="password"
-                id="password"
-                name="password"
-                value={password}
-                onChange={handleInputChange}
-                className={commonClassNameOfInput}
-                placeholder="Enter your password"
-                required
-              />
-            </div>
-
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-                Confirm Password
-              </label>
-              <input
-                type="password"
-                id="confirmPassword"
-                name="confirmPassword"
-                value={confirmPassword}
-                onChange={handleInputChange}
-                className={commonClassNameOfInput}
-                placeholder="Confirm your password"
-                required
-              />
-            </div>
-
-            <PrimaryButton type="submit" className="w-full bg-purple-700" disabled={isLoading}>
-              {isLoading ? "Creating Account..." : "Create Account"}
-            </PrimaryButton>
-          </form>
-
-          <div className="mt-6 text-center">
-            <p className="text-gray-600">
-              Already have an account?{" "}
-              <Link to="/login" className="text-green hover:underline">
-                Sign in here
-              </Link>
-            </p>
-          </div>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div>
+          <label htmlFor="name" className="block text-sm font-medium mb-2">
+            Full Name
+          </label>
+          <input
+            type="text"
+            id="name"
+            name="name"
+            value={name}
+            onChange={handleInputChange}
+            className={`${commonClassNameOfInput} bg-gray-900/50 text-white placeholder-gray-400`}
+            placeholder="Enter your full name"
+            required
+          />
         </div>
-      </Container>
-    </section>
+
+        <div>
+          <label htmlFor="email" className="block text-sm font-medium mb-2">
+            Email Address
+          </label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            value={email}
+            onChange={handleInputChange}
+            className={`${commonClassNameOfInput} bg-gray-900/50 text-white placeholder-gray-400`}
+            placeholder="Enter your email"
+            required
+          />
+        </div>
+
+        <div>
+          <label htmlFor="password" className="block text-sm font-medium mb-2">
+            Password
+          </label>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            value={password}
+            onChange={handleInputChange}
+            className={`${commonClassNameOfInput} bg-gray-900/50 text-white placeholder-gray-400`}
+            placeholder="Enter your password"
+            required
+          />
+        </div>
+
+        <div>
+          <label htmlFor="confirmPassword" className="block text-sm font-medium mb-2">
+            Confirm Password
+          </label>
+          <input
+            type="password"
+            id="confirmPassword"
+            name="confirmPassword"
+            value={confirmPassword}
+            onChange={handleInputChange}
+            className={`${commonClassNameOfInput} bg-gray-900/50 text-white placeholder-gray-400`}
+            placeholder="Confirm your password"
+            required
+          />
+        </div>
+
+        <PrimaryButton type="submit" className="w-full bg-purple-700" disabled={isLoading}>
+          {isLoading ? "Creating Account..." : "Create Account"}
+        </PrimaryButton>
+      </form>
+
+      <div className="mt-6 text-center">
+        <p className="text-gray-300">
+          Already have an account?{" "}
+          <Link to="/login" className="text-green-400 hover:underline">
+            Sign in here
+          </Link>
+        </p>
+      </div>
+    </div>
+  </Container>
+</section>
   )
 }
 
