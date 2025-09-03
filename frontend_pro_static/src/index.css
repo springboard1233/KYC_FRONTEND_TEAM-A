@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* custom styles to give premium look */
+:root { color-scheme: dark; }
+html,body,#root { height: 100%; }
+
+.bg-frost {
+  background: linear-gradient(135deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.app-scroll { max-height: calc(100vh - 6rem); overflow: auto; padding-right: 8px; }
+.header-btn { transition: transform .18s ease, box-shadow .18s ease; }
+.header-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.6); }
+.card-hero { box-shadow: 0 12px 40px rgba(10,10,20,0.6); }
