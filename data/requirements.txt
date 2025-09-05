@@ -1,5 +1,0 @@
-faker
-opencv-python
-pytesseract
-pdf2image
-pillow
