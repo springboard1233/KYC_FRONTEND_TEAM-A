@@ -1,0 +1,37 @@
+filename,doctype,name,dob,age,gender,identifier,address,father_name
+aadhaar_1.png,AADHAAR,Manikya Taneja,17-02-2006,19,Male,833475476655,"296 Lal, Vijayawada, Odisha - 412365",Jhanvi Arora
+aadhaar_1.pdf,AADHAAR,Manikya Taneja,17-02-2006,19,Male,833475476655,"296 Lal, Vijayawada, Odisha - 412365",Jhanvi Arora
+aadhaar_2.png,AADHAAR,Khushi Konda,29-07-1983,42,Other,770970056030,"72/140 Chawla Ganj, Sri Ganganagar, Tamil Nadu - 678141",Yuvraj  Varma
+aadhaar_2.pdf,AADHAAR,Khushi Konda,29-07-1983,42,Other,770970056030,"72/140 Chawla Ganj, Sri Ganganagar, Tamil Nadu - 678141",Yuvraj  Varma
+aadhaar_3.png,AADHAAR,Amani Arora,25-06-1984,41,Female,684353569836,"62/909 Brahmbhatt, Naihati, Gujarat - 482582",Shayak Sharaf
+aadhaar_3.pdf,AADHAAR,Amani Arora,25-06-1984,41,Female,684353569836,"62/909 Brahmbhatt, Naihati, Gujarat - 482582",Shayak Sharaf
+aadhaar_4.png,AADHAAR,Amira Kumer,02-09-1959,66,Other,653136747454,"09 Aggarwal, Guntakal, Himachal Pradesh - 586137",Kanav Rastogi
+aadhaar_4.pdf,AADHAAR,Amira Kumer,02-09-1959,66,Other,653136747454,"09 Aggarwal, Guntakal, Himachal Pradesh - 586137",Kanav Rastogi
+aadhaar_5.png,AADHAAR,Shlok Rajagopalan,31-08-1963,62,Male,337495790335,"08 Biswas Path, Bhind, Telangana - 595894",Divyansh Chahal
+aadhaar_5.pdf,AADHAAR,Shlok Rajagopalan,31-08-1963,62,Male,337495790335,"08 Biswas Path, Bhind, Telangana - 595894",Divyansh Chahal
+aadhaar_6.png,AADHAAR,Shaan Bhatti,22-02-1989,36,Female,980869862205,"337 Borra Path, Adoni, Mizoram - 083887",Badal Bhatnagar
+aadhaar_6.pdf,AADHAAR,Shaan Bhatti,22-02-1989,36,Female,980869862205,"337 Borra Path, Adoni, Mizoram - 083887",Badal Bhatnagar
+aadhaar_7.png,AADHAAR,Anya Kara,28-02-1983,42,Male,154360982427,"17/561 Bhargava, Howrah, Mizoram - 253673",Divit Bhakta
+aadhaar_7.pdf,AADHAAR,Anya Kara,28-02-1983,42,Male,154360982427,"17/561 Bhargava, Howrah, Mizoram - 253673",Divit Bhakta
+aadhaar_8.png,AADHAAR,Fateh Bir,20-07-1989,36,Male,772023847141,"H.No. 03 Chhabra Ganj, Tumkur, Chhattisgarh - 239242",Emir Lad
+aadhaar_8.pdf,AADHAAR,Fateh Bir,20-07-1989,36,Male,772023847141,"H.No. 03 Chhabra Ganj, Tumkur, Chhattisgarh - 239242",Emir Lad
+aadhaar_9.png,AADHAAR,Divit Dani,20-10-1971,53,Other,316818516327,"43/272 Kothari Chowk, Orai, Bihar - 929473",Jayan Atwal
+aadhaar_9.pdf,AADHAAR,Divit Dani,20-10-1971,53,Other,316818516327,"43/272 Kothari Chowk, Orai, Bihar - 929473",Jayan Atwal
+pan_10.png,PAN,Tara Tata,22-05-2006,19,Other,PVXVX3824L,"H.No. 538 Tara Nagar, Bhilai, Meghalaya - 061944",Jayan Sarkar
+pan_10.pdf,PAN,Tara Tata,22-05-2006,19,Other,PVXVX3824L,"H.No. 538 Tara Nagar, Bhilai, Meghalaya - 061944",Jayan Sarkar
+pan_11.png,PAN,Uthkarsh Dutt,01-06-1978,47,Other,GAWTK4571Q,"H.No. 315 Trivedi Path, Tiruppur, Haryana - 434199",Dishani Lanka
+pan_11.pdf,PAN,Uthkarsh Dutt,01-06-1978,47,Other,GAWTK4571Q,"H.No. 315 Trivedi Path, Tiruppur, Haryana - 434199",Dishani Lanka
+pan_12.png,PAN,Lakshay Chaudhary,26-05-1984,41,Male,QQYRL9456E,"H.No. 86 Majumdar Nagar, Ulhasnagar, Rajasthan - 707314",Jivika Savant
+pan_12.pdf,PAN,Lakshay Chaudhary,26-05-1984,41,Male,QQYRL9456E,"H.No. 86 Majumdar Nagar, Ulhasnagar, Rajasthan - 707314",Jivika Savant
+pan_13.png,PAN,Eshani Desai,29-04-1998,27,Female,SXOFR4643I,"447 Bala Circle, Udaipur, Gujarat - 639201",Rohan Arora
+pan_13.pdf,PAN,Eshani Desai,29-04-1998,27,Female,SXOFR4643I,"447 Bala Circle, Udaipur, Gujarat - 639201",Rohan Arora
+pan_14.png,PAN,Sara Behl,11-02-1961,64,Male,WCOZU6820P,"H.No. 619 Sur Zila, Thoothukudi, Rajasthan - 643835",Samaira Mangat
+pan_14.pdf,PAN,Sara Behl,11-02-1961,64,Male,WCOZU6820P,"H.No. 619 Sur Zila, Thoothukudi, Rajasthan - 643835",Samaira Mangat
+pan_15.png,PAN,Shamik Deol,18-12-1992,32,Other,JGLPL8946D,"08/757 Varughese Road, Nagpur, Jharkhand - 499188",Mishti Shah
+pan_15.pdf,PAN,Shamik Deol,18-12-1992,32,Other,JGLPL8946D,"08/757 Varughese Road, Nagpur, Jharkhand - 499188",Mishti Shah
+pan_16.png,PAN,Lakshay Grover,16-06-2002,23,Other,RPLML3713G,"82 Sarin, Udaipur, Nagaland - 140445",Vritika Kar
+pan_16.pdf,PAN,Lakshay Grover,16-06-2002,23,Other,RPLML3713G,"82 Sarin, Udaipur, Nagaland - 140445",Vritika Kar
+pan_17.png,PAN,Baiju Borra,16-03-1980,45,Other,FLPLX1914U,"36/030 Bhandari Zila, Munger, Rajasthan - 422987",Ojas Vyas
+pan_17.pdf,PAN,Baiju Borra,16-03-1980,45,Other,FLPLX1914U,"36/030 Bhandari Zila, Munger, Rajasthan - 422987",Ojas Vyas
+pan_18.png,PAN,Armaan Sankaran,17-05-1955,70,Other,VNOKS0349D,"62/265 Loke, Nagercoil, Andhra Pradesh - 097499",Aayush Roy
+pan_18.pdf,PAN,Armaan Sankaran,17-05-1955,70,Other,VNOKS0349D,"62/265 Loke, Nagercoil, Andhra Pradesh - 097499",Aayush Roy

@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: kyc_mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+      MONGO_INITDB_DATABASE: kyc_verification
+    volumes:
+      - mongodb_data:/data/db
+      - ./mongo-init:/docker-entrypoint-initdb.d
+    networks:
+      - kyc_network
+
+  backend:
+    build: ./backend
+    container_name: kyc_backend
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=development
+      - MONGO_URI=mongodb://admin:password123@mongodb:27017/kyc_verification?authSource=admin
+    volumes:
+      - ./backend:/app
+      - ./data:/app/data
+      - ./exports:/app/exports
+    depends_on:
+      - mongodb
+    networks:
+      - kyc_network
+
+volumes:
+  mongodb_data:
+
+networks:
+  kyc_network:
+    driver: bridge
