@@ -127,6 +127,8 @@ const Dashboard = () => {
       const token = localStorage.getItem('access_token')
       if (!token) throw new Error('No access token found')
 
+      console.log('🔍 Fetching records...')
+
       const response = await fetch('http://localhost:5000/api/records', {
         method: 'GET',
         headers: {
@@ -137,12 +139,16 @@ const Dashboard = () => {
 
       if (response.ok) {
         const data = await response.json()
+        console.log('✅ Records fetched:', data)
         setRecords(data.records || [])
       } else {
-        throw new Error(`HTTP ${response.status}`)
+        const errorData = await response.json()
+        console.error('❌ Records fetch failed:', errorData)
+        throw new Error(`HTTP ${response.status}: ${errorData.error || 'Failed to fetch records'}`)
       }
     } catch (err) {
       console.error('Failed to fetch records:', err)
+      setError(`Failed to load records: ${err.message}`)
       setRecords([])
     } finally {
       setLoadingRecords(false)
@@ -173,7 +179,9 @@ const Dashboard = () => {
         // Refresh stats and records
         const newStats = await getStats()
         setStats(newStats)
-        await fetchRecords()
+        if (currentView === 'records') {
+          await fetchRecords()
+        }
       } else {
         const errorData = await response.json()
         throw new Error(errorData.error || 'Failed to save record')
@@ -196,6 +204,8 @@ const Dashboard = () => {
       const token = localStorage.getItem('access_token')
       if (!token) throw new Error('No access token found')
 
+      console.log('🗑️ Deleting record:', recordId)
+
       const response = await fetch(`http://localhost:5000/api/records/${recordId}`, {
         method: 'DELETE',
         headers: {
@@ -205,8 +215,10 @@ const Dashboard = () => {
       })
 
       if (response.ok) {
+        console.log('✅ Record deleted successfully')
+        
         // Remove from local state
-        setRecords(records.filter(record => record.id !== recordId))
+        setRecords(prev => prev.filter(record => record.id !== recordId))
         
         // Refresh stats
         const newStats = await getStats()
@@ -245,6 +257,7 @@ const Dashboard = () => {
   // Load records when switching to records view
   useEffect(() => {
     if (currentView === 'records') {
+      console.log('📁 Switching to records view, fetching records...')
       fetchRecords()
     }
   }, [currentView, fetchRecords])
@@ -558,7 +571,7 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              {/* Stats Grid - Removed Success Rate */}
+              {/* Stats Grid */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
                   <div className="flex items-center justify-between mb-4">
@@ -826,14 +839,14 @@ const Dashboard = () => {
                 <p className="text-gray-600">Your document has been successfully processed</p>
               </div>
 
-              <div className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+              <div className="bg-white rounded-lg shadow-lg border border-gray-200">
                 <div className="bg-green-50 px-6 py-4 border-b border-gray-200">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
                       <Zap className="h-6 w-6 text-green-600 mr-3" />
                       <div>
-                        <h3 className="text-lg font-bold text-gray-800">AI Extraction Results</h3>
-                        <p className="text-green-600 text-sm">Document processed successfully</p>
+                        <h3 className="text-lg font-bold text-green-800">AI Extraction Results</h3>
+                        <p className="text-green-600">Document processed successfully</p>
                       </div>
                     </div>
                     <div className="text-right">
@@ -872,16 +885,16 @@ const Dashboard = () => {
                     <button
                       onClick={saveToDatabase}
                       disabled={saving}
-                      className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50"
+                      className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 flex items-center justify-center"
                     >
                       {saving ? (
                         <>
-                          <Loader className="animate-spin h-4 w-4 inline mr-2" />
+                          <Loader className="animate-spin h-4 w-4 mr-2" />
                           Saving...
                         </>
                       ) : (
                         <>
-                          <Database className="h-4 w-4 inline mr-2" />
+                          <Database className="h-4 w-4 mr-2" />
                           Save to Database
                         </>
                       )}
@@ -889,17 +902,17 @@ const Dashboard = () => {
                     
                     <button
                       onClick={() => setCurrentView('upload')}
-                      className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                      className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center justify-center"
                     >
-                      <Plus className="h-4 w-4 inline mr-2" />
+                      <Plus className="h-4 w-4 mr-2" />
                       Process Another
                     </button>
                     
                     <button
                       onClick={() => setCurrentView('records')}
-                      className="border border-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors font-medium"
+                      className="border border-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors font-medium flex items-center justify-center"
                     >
-                      <FileText className="h-4 w-4 inline mr-2" />
+                      <FileText className="h-4 w-4 mr-2" />
                       View Records
                     </button>
                   </div>
@@ -908,36 +921,53 @@ const Dashboard = () => {
             </div>
           )}
 
-          {/* Enhanced Records Management with Detailed View */}
+          {/* Enhanced Records Management - FIXED */}
           {currentView === 'records' && (
             <div className="space-y-6">
               <div className="flex justify-between items-center">
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-800">Records Management</h2>
-                  <p className="text-gray-600 mt-1">View and manage extracted document data</p>
+                  <h2 className="text-2xl font-bold text-gray-800">📁 Records Management</h2>
+                  <p className="text-gray-600 mt-1">View and manage your processed documents</p>
                 </div>
                 
                 {records.length > 0 && (
                   <div className="flex space-x-3">
-                    <button className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 font-medium">
-                      <Filter className="h-4 w-4 inline mr-2" />
+                    <button className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 font-medium flex items-center">
+                      <Filter className="h-4 w-4 mr-2" />
                       Filter
                     </button>
                     <button
                       onClick={() => downloadJSON(records, `all-records-${Date.now()}.json`)}
-                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium"
+                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium flex items-center"
                     >
-                      <Download className="h-4 w-4 inline mr-2" />
+                      <Download className="h-4 w-4 mr-2" />
                       Export All
                     </button>
                   </div>
                 )}
               </div>
 
+              {/* Records Display */}
               {loadingRecords ? (
                 <div className="text-center py-12">
                   <Loader className="animate-spin h-8 w-8 text-blue-600 mx-auto mb-4" />
-                  <p className="text-gray-600">Loading records...</p>
+                  <p className="text-gray-600">Loading your records...</p>
+                </div>
+              ) : error && currentView === 'records' ? (
+                <div className="text-center py-12 bg-red-50 rounded-lg border border-red-200">
+                  <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                  <h3 className="text-xl font-bold text-red-800 mb-2">Failed to Load Records</h3>
+                  <p className="text-red-600 mb-4">{error}</p>
+                  <button
+                    onClick={() => {
+                      setError('')
+                      fetchRecords()
+                    }}
+                    className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 font-medium"
+                  >
+                    <RefreshCw className="h-4 w-4 inline mr-2" />
+                    Retry Loading
+                  </button>
                 </div>
               ) : records.length === 0 ? (
                 <div className="text-center py-12 bg-white rounded-lg shadow border border-gray-200">
@@ -946,16 +976,16 @@ const Dashboard = () => {
                   <p className="text-gray-600 mb-6">Upload your first document to get started</p>
                   <button
                     onClick={() => setCurrentView('upload')}
-                    className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-medium"
+                    className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-medium flex items-center mx-auto"
                   >
-                    <Upload className="h-4 w-4 inline mr-2" />
+                    <Upload className="h-4 w-4 mr-2" />
                     Upload Document
                   </button>
                 </div>
               ) : (
                 <div className="space-y-4">
                   {records.map((record) => (
-                    <div key={record.id} className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
+                    <div key={record.id} className="bg-white rounded-lg shadow border border-gray-200">
                       {/* Record Header */}
                       <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
                         <div className="flex items-center justify-between">
@@ -967,15 +997,17 @@ const Dashboard = () => {
                             </div>
                             <div>
                               <h3 className="text-lg font-bold text-gray-800 capitalize">
-                                {record.document_type} Card
+                                {record.document_type || 'Unknown'} Document
                               </h3>
                               <p className="text-sm text-gray-500 flex items-center">
                                 <Calendar className="h-4 w-4 mr-1" />
                                 {new Date(record.created_at).toLocaleDateString()}
-                                <span className="ml-4 flex items-center">
-                                  <Star className="h-4 w-4 mr-1" />
-                                  {Math.round(record.confidence_score)}% Confidence
-                                </span>
+                                {record.confidence_score && (
+                                  <span className="ml-4 flex items-center">
+                                    <Star className="h-4 w-4 mr-1" />
+                                    {Math.round(record.confidence_score)}% Confidence
+                                  </span>
+                                )}
                               </p>
                             </div>
                           </div>
@@ -984,6 +1016,7 @@ const Dashboard = () => {
                             <button
                               onClick={() => setExpandedRecord(expandedRecord === record.id ? null : record.id)}
                               className="text-gray-600 hover:text-gray-800 p-2 rounded-lg hover:bg-gray-100"
+                              title="View Details"
                             >
                               <Eye className="h-4 w-4" />
                             </button>
@@ -1008,27 +1041,16 @@ const Dashboard = () => {
                       {/* Expanded Details */}
                       {expandedRecord === record.id && (
                         <div className="px-6 py-4">
-                          <h4 className="text-md font-bold text-gray-800 mb-4">Extracted Details</h4>
+                          <h4 className="text-md font-bold text-gray-800 mb-4">📋 Extracted Details</h4>
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {Object.entries(record.extracted_fields || {}).map(([key, value]) => {
                               if (key === 'document_type') return null
-                              
-                              // Choose appropriate icon for each field
-                              let IconComponent = FileText
-                              if (key === 'name') IconComponent = User
-                              else if (key === 'aadhaar_number' || key === 'pan_number') IconComponent = Hash
-                              else if (key === 'date_of_birth') IconComponent = CalendarIcon
-                              else if (key === 'gender') IconComponent = Users
-                              else if (key === 'address') IconComponent = MapPin
-                              else if (key === 'father_name') IconComponent = User
-                              else if (key === 'phone' || key === 'mobile') IconComponent = Phone
-                              else if (key === 'email') IconComponent = Mail
                               
                               return (
                                 <div key={key} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
                                   <div className="flex items-start space-x-3">
                                     <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center mt-1">
-                                      <IconComponent className="h-4 w-4 text-gray-600" />
+                                      <Hash className="h-4 w-4 text-gray-600" />
                                     </div>
                                     <div className="flex-1 min-w-0">
                                       <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
@@ -1050,19 +1072,19 @@ const Dashboard = () => {
                           <div className="mt-6 pt-4 border-t border-gray-200">
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                               <div>
-                                <span className="font-medium text-gray-600">File Name:</span>
-                                <p className="text-gray-800">{record.filename}</p>
+                                <span className="font-medium text-gray-600">📄 File Name:</span>
+                                <p className="text-gray-800">{record.filename || 'Unknown'}</p>
                               </div>
                               <div>
-                                <span className="font-medium text-gray-600">Processing Date:</span>
+                                <span className="font-medium text-gray-600">⏰ Processing Date:</span>
                                 <p className="text-gray-800">{new Date(record.created_at).toLocaleString()}</p>
                               </div>
                               <div>
-                                <span className="font-medium text-gray-600">Status:</span>
+                                <span className="font-medium text-gray-600">📊 Status:</span>
                                 <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full ml-2 ${
                                   record.status === 'processed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
                                 }`}>
-                                  {record.status}
+                                  {record.status || 'processed'}
                                 </span>
                               </div>
                             </div>

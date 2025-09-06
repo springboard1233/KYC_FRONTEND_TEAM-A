@@ -37,6 +37,41 @@ CORS(app,
      allow_headers=["Content-Type", "Authorization"],
      supports_credentials=True)
 
+# Helper function to serialize MongoDB documents to JSON-safe format
+def serialize_document(doc):
+    """Convert MongoDB document to JSON-serializable dict"""
+    if doc is None:
+        return None
+    
+    result = {}
+    for key, value in doc.items():
+        if isinstance(value, ObjectId):
+            result[key] = str(value)
+        elif isinstance(value, datetime):
+            result[key] = value.isoformat()
+        elif isinstance(value, dict):
+            # Handle nested objects
+            result[key] = {}
+            for nested_key, nested_value in value.items():
+                if isinstance(nested_value, ObjectId):
+                    result[key][nested_key] = str(nested_value)
+                else:
+                    result[key][nested_key] = nested_value
+        elif isinstance(value, list):
+            # Handle arrays
+            result[key] = []
+            for item in value:
+                if isinstance(item, ObjectId):
+                    result[key].append(str(item))
+                elif isinstance(item, dict):
+                    result[key].append(serialize_document(item))
+                else:
+                    result[key].append(item)
+        else:
+            result[key] = value
+    
+    return result
+
 # MongoDB connection
 try:
     mongo_client = MongoClient('mongodb://localhost:27017/', serverSelectionTimeoutMS=5000)
@@ -90,8 +125,8 @@ def index():
             'extract': 'POST /api/extract',
             'stats': 'GET /api/records/stats',
             'records': 'GET /api/records',
-            'delete_record': 'DELETE /api/records/<record_id>',  # FIXED
-            'save_record': 'POST /api/records/save',  # NEW
+            'delete_record': 'DELETE /api/records/<record_id>',
+            'save_record': 'POST /api/records/save',
             'export_all_csv': 'GET /api/records/export/csv',
             'debug_users': 'GET /api/debug/users',
             'debug_mongodb': 'GET /api/debug/mongodb'
@@ -292,7 +327,7 @@ def get_current_user():
         logger.error(f"❌ Get user error: {str(e)}")
         return jsonify({'error': 'Internal server error'}), 500
 
-# GET RECORDS STATS
+# GET RECORDS STATS - FIXED ObjectId Serialization
 @app.route('/api/records/stats', methods=['GET'])
 @jwt_required()
 def get_records_stats():
@@ -306,7 +341,8 @@ def get_records_stats():
         if records_collection is not None:
             try:
                 cursor = records_collection.find({'user_id': ObjectId(user_id)})
-                user_records = list(cursor)
+                # Convert to list of serialized documents
+                user_records = [serialize_document(doc) for doc in cursor]
                 logger.info(f"📊 Stats from MongoDB: {len(user_records)} records")
             except Exception as mongo_error:
                 logger.error(f"❌ MongoDB query failed: {mongo_error}")
@@ -330,7 +366,7 @@ def get_records_stats():
         logger.error(f"❌ Stats error: {str(e)}")
         return jsonify({'error': 'Internal server error'}), 500
 
-# GET ALL RECORDS
+# GET ALL RECORDS - FIXED ObjectId Serialization
 @app.route('/api/records', methods=['GET'])
 @jwt_required()
 def get_all_records():
@@ -345,10 +381,12 @@ def get_all_records():
             try:
                 cursor = records_collection.find({'user_id': ObjectId(user_id)}).sort('created_at', -1)
                 for doc in cursor:
-                    record = dict(doc)
-                    record['id'] = str(record['_id'])
-                    record['user_id'] = str(record['user_id'])
+                    # Serialize the document to handle ObjectId fields
+                    record = serialize_document(doc)
+                    record['id'] = str(doc['_id'])
+                    record['user_id'] = str(doc['user_id'])
                     user_records.append(record)
+                
                 logger.info(f"📁 Records from MongoDB: {len(user_records)}")
             except Exception as mongo_error:
                 logger.error(f"❌ MongoDB query failed: {mongo_error}")
@@ -357,6 +395,7 @@ def get_all_records():
         if not user_records:
             user_records = [r for r in records_db if str(r.get('user_id')) == str(user_id)]
             user_records.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+            logger.info(f"📁 Records from memory: {len(user_records)}")
         
         return jsonify({
             'records': user_records,
@@ -367,7 +406,7 @@ def get_all_records():
         logger.error(f"❌ Get records error: {str(e)}")
         return jsonify({'error': 'Internal server error'}), 500
 
-# FIXED: DELETE RECORD with correct route pattern
+# DELETE RECORD
 @app.route('/api/records/<record_id>', methods=['DELETE'])
 @jwt_required()
 def delete_record(record_id):
@@ -412,7 +451,7 @@ def delete_record(record_id):
         logger.error(f"❌ Delete record error: {str(e)}")
         return jsonify({'error': 'Failed to delete record'}), 500
 
-# NEW: MANUAL SAVE RECORD endpoint
+# MANUAL SAVE RECORD endpoint
 @app.route('/api/records/save', methods=['POST'])
 @jwt_required()
 def save_extracted_record():
@@ -706,7 +745,7 @@ def parse_pan_text(text):
     
     return extracted
 
-# CSV Export
+# CSV Export - FIXED ObjectId Serialization
 @app.route('/api/records/export/csv', methods=['GET'])
 @jwt_required()
 def export_records_csv():
@@ -717,8 +756,8 @@ def export_records_csv():
         if records_collection is not None:
             cursor = records_collection.find({'user_id': ObjectId(user_id)})
             for doc in cursor:
-                record = dict(doc)
-                record['id'] = str(record['_id'])
+                record = serialize_document(doc)
+                record['id'] = str(doc['_id'])
                 user_records.append(record)
         else:
             user_records = [r for r in records_db if str(r.get('user_id')) == str(user_id)]
@@ -779,8 +818,8 @@ def debug_users():
         try:
             cursor = users_collection.find({})
             for doc in cursor:
-                user = dict(doc)
-                user['id'] = str(user['_id'])
+                user = serialize_document(doc)
+                user['id'] = str(doc['_id'])
                 del user['password_hash']  # Security
                 mongo_users.append(user)
         except Exception as e:
