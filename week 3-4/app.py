@@ -108,7 +108,7 @@ def save_user_file(file, user_id, doc_type):
 
 #  helper function to send email
 def send_email(receiver_email, otp):
-    sender_email = "shubham.19jdai037@gmail.com"   # <-- change to yours
+    sender_email = "your@gmail.com"   # <-- change to yours gmail address
     password = os.getenv("GMAIL_PASSWORD")  #  load from env          # Gmail app password
     message = f"Subject: Login OTP\n\nYour OTP is {otp}. It is valid for 2 minutes."
 
