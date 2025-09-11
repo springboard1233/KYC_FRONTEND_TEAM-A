@@ -75,6 +75,11 @@ const LandingPage = () => {
             Get Started
           </Link>
         </div>
+        <div className="">
+          <Link to="/admin/login" className="btn btn-primary ml-2">
+            Admin
+          </Link>
+        </div>
       </header>
 
      <main className="min-h-screen bg-gradient-to-b from-black via-zinc-900 to-black text-white">

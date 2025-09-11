@@ -1,8 +1,8 @@
 import React, { useCallback, useState, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
-import Loader from './Loader';
 
-// Configuration for file validation
+// Note: Loader is no longer needed here as the parent component handles loading states.
+
 const FILE_CONFIG = {
   'image/jpeg': [],
   'image/png': [],
@@ -11,7 +11,7 @@ const FILE_CONFIG = {
 const MAX_SIZE_MB = 2;
 const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
 
-const DocumentUploader = ({ docName, onFileUpload, isLoading, extractedData, uploadError }) => {
+const DocumentUploader = ({ docName, onFileUpload }) => {
   const [preview, setPreview] = useState(null);
   const [validationError, setValidationError] = useState('');
 
@@ -25,9 +25,11 @@ const DocumentUploader = ({ docName, onFileUpload, isLoading, extractedData, upl
     if (preview) URL.revokeObjectURL(preview);
 
     const file = acceptedFiles[0];
-    setPreview(URL.createObjectURL(file));
-    onFileUpload(file); // Trigger real-time OCR
-  }, [onFileUpload, preview]);
+    if (file) {
+      setPreview(URL.createObjectURL(file));
+      onFileUpload(file); // Immediately pass the file up to the parent component
+    }
+  }, [preview, onFileUpload]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -41,33 +43,28 @@ const DocumentUploader = ({ docName, onFileUpload, isLoading, extractedData, upl
 
   return (
     <div className="uploader-card">
-      <h3>{docName}</h3>
-      <div {...getRootProps({ className: `dropzone ${isDragActive ? 'active' : ''}` })}>
+      <h3 className="text-xl font-semibold mb-4 text-center">{docName}</h3>
+      
+      <div 
+        {...getRootProps({ 
+          className: `dropzone border-2 border-dashed rounded-lg p-6 cursor-pointer text-center transition 
+          ${isDragActive ? 'border-blue-400 bg-white/20' : 'border-gray-500 bg-transparent'}`
+        })}
+      >
         <input {...getInputProps()} />
         {preview ? (
-          <img src={preview} alt="Document preview" className="preview-img" />
+          <img src={preview} alt="Document preview" className="preview-img mx-auto max-h-40 rounded-md" />
         ) : (
-          <p>Drag & drop your file here, or click to select</p>
+          <p className="text-gray-400">Drag & drop your file here, or click to select</p>
         )}
       </div>
       
-      <div className="status-area">
-        {isLoading && <Loader />}
-        {validationError && <p className="error-text">{validationError}</p>}
-        {uploadError && <p className="error-text">{uploadError}</p>}
-
-        {extractedData && (
-          <div className="results-preview">
-            <h4>Extracted Data:</h4>
-            <ul>
-              {Object.entries(extractedData).map(([key, value]) => (
-                value && <li key={key}><strong>{key}:</strong> {value}</li>
-              ))}
-            </ul>
-          </div>
-        )}
+      {/* --- This area is now cleaner, as results are shown in the parent --- */}
+      <div className="status-area mt-4">
+        {validationError && <p className="text-red-400 text-center">{validationError}</p>}
       </div>
     </div>
   );
 };
+
 export default DocumentUploader;

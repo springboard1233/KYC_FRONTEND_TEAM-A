@@ -1,5 +1,3 @@
-# backend/ocr.py
-
 import cv2
 import pytesseract
 import re
@@ -107,7 +105,13 @@ def extract_aadhaar_details(filepath):
                 dob = dob_match.group(1).replace(" ", "")
                 details["DOB"] = format_dob(dob)
 
-        return details
+        allowed_keys = {"Name", "DOB", "Gender", "Address", "AadhaarNumber"}
+        filtered_details = {k: details[k] for k in allowed_keys}
+
+        if all(filtered_details.values()):
+            return filtered_details
+        else:
+            return "Upload correct document"
 
     except Exception as e:
         print(f"An error occurred in OCR processing: {e}")

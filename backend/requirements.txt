@@ -1,8 +1,24 @@
+# --- Web Server ---
 Flask
 Flask-Cors
 Werkzeug
+
+# --- Database ---
+Flask-PyMongo
+dnspython
+python-dotenv
+
+# --- Authentication ---
+Flask-Bcrypt
+PyJWT
+
+# --- OCR & Image Processing ---
 opencv-python
 pytesseract
 pillow
-PyMuPDF 
+PyMuPDF
 numpy
+
+# --- AI & Verification ---
+fuzzywuzzy
+python-Levenshtein

@@ -61,11 +61,10 @@ const logiUser = asyncHandler(async (req, res) => {
 
     const user = await User.findOne({ email });
     if (!user) {
-        res.status(401); // User not found is an authorization failure
+        res.status(401);
         throw new Error("Invalid credentials");
     }
 
-    // FIX 1 (cont.): Use the correct variable name 'bcrypt'
     const passwordIsCorrect = await bcrypt.compare(password, user.password);
 
     if (passwordIsCorrect) {
@@ -80,11 +79,10 @@ const logiUser = asyncHandler(async (req, res) => {
         });
 
         const { _id, name, photo, role } = user;
-        // FIX 3: Use correct HTTP status 200 OK for login
-        res.status(200).json({ _id, name, email, photo, role, token });
+        // res.status(200).json({ _id, name, email, photo, role, token });
+        res.status(200).json({ user: { _id, name, email, photo, role },token});
     } else {
-        // FIX 2: Handle incorrect password properly
-        res.status(401); // Incorrect password is an authorization failure
+        res.status(401); 
         throw new Error("Invalid credentials");
     }
 });

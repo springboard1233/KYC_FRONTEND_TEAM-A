@@ -8,6 +8,7 @@ const cookieParser = require('cookie-parser');
 const cloudinary = require("cloudinary").v2;
 
 const userRoute = require("./routes/userRoute");
+const adminRoute = require("./routes/adminRoute");
 const errorHandler = require("./middleware/errorMiddleware");
 
 const app = express();
@@ -23,7 +24,6 @@ cloudinary.config({
 app.use(express.json());
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: false }));
-// app.use(bodyParser.json()); // FIX 3: This is redundant, express.json() handles it.
 
 // CORS Configuration
 app.use(
@@ -38,6 +38,7 @@ app.use(
 // ROUTES
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/api/users", userRoute);
+app.use("/api/admins", adminRoute);
 
 // Default Route
 app.get("/", (req, res) => {
