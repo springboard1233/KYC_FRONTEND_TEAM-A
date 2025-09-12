@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Aadhaar e-KYC | Futuristic Verification Platform + Admin</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Background -->
+  <div class="bg-animation">
+    <div class="grid-overlay"></div>
+    <div class="floating-shape shape-1"></div>
+    <div class="floating-shape shape-2"></div>
+  </div>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="nav-container">
+      <div class="logo" onclick="showSection('home')">AADHAAR e-KYC</div>
+      <nav>
+        <ul class="nav-menu">
+          <li><a onclick="showSection('home')">Home</a></li>
+          <li><a onclick="showSection('kyc')" id="kyc-nav">KYC Verification</a></li>
+          <li><a onclick="showSection('dashboard')" id="dashboard-nav">Dashboard</a></li>
+          <li><a onclick="showSection('admin')" id="admin-nav">Admin</a></li>
+          <li><a onclick="logout()" id="logout-nav" class="hidden">Logout</a></li>
+        </ul>
+      </nav>
+      <div class="auth-buttons" id="auth-buttons">
+        <button class="auth-btn login-btn" onclick="showSection('login')">Login</button>
+        <button class="auth-btn signup-btn" onclick="showSection('signup')">Sign Up</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Home -->
+  <section class="page-section active" id="home">
+    <div class="hero">
+      <div class="hero-content">
+        <h1 class="hero-title">Verify Aadhaar Instantly with Secure e-KYC</h1>
+        <p class="hero-subtitle">Sign up, verify with OTP, upload your documents, and manage KYC status with a modern, secure experience</p>
+        <div class="cta-buttons">
+          <button class="cta-btn cta-primary" onclick="showSection('signup')">Start KYC Verification</button>
+          <button class="cta-btn cta-secondary" onclick="showSection('kyc')">Upload Documents</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Signup -->
+  <section class="page-section" id="signup">
+    <div class="form-container">
+      <h2 class="form-title">Create Account</h2>
+      <form id="signup-form">
+        <div class="form-group">
+          <label class="form-label">First Name</label>
+          <input type="text" class="form-input" id="signup-firstname" placeholder="Enter your first name" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Last Name</label>
+          <input type="text" class="form-input" id="signup-lastname" placeholder="Enter your last name" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <input type="email" class="form-input" id="signup-email" placeholder="Enter your email" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input type="password" class="form-input" id="signup-password" placeholder="Create a strong password" required>
+        </div>
+        <button type="submit" class="form-button">Send OTP</button>
+      </form>
+      <div class="loading-spinner" id="signup-loading"></div>
+      <div id="signup-alert"></div>
+    </div>
+  </section>
+
+  <!-- OTP -->
+  <section class="page-section" id="otp-verification">
+    <div class="form-container">
+      <h2 class="form-title">Verify OTP</h2>
+      <form id="otp-form">
+        <div class="form-group">
+          <label class="form-label">Enter OTP</label>
+          <input type="text" class="form-input" id="otp-code" placeholder="Enter 6-digit code" maxlength="6" required>
+        </div>
+        <button type="submit" class="form-button">Verify</button>
+        <button type="button" class="form-button" onclick="resendOTP()" style="background: transparent; border: 2px solid #00ffff; color: #00ffff; margin-top: 10px;">Resend</button>
+      </form>
+      <div class="loading-spinner" id="otp-loading"></div>
+      <div id="otp-alert"></div>
+    </div>
+  </section>
+
+  <!-- Login -->
+  <section class="page-section" id="login">
+    <div class="form-container">
+      <h2 class="form-title">Login</h2>
+      <form id="login-form">
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <input type="email" class="form-input" id="login-email" placeholder="Enter your email" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input type="password" class="form-input" id="login-password" placeholder="Enter your password" required>
+        </div>
+        <button type="submit" class="form-button">Send Login OTP</button>
+      </form>
+      <div class="loading-spinner" id="login-loading"></div>
+      <div id="login-alert"></div>
+    </div>
+  </section>
+
+  <!-- Login OTP -->
+  <section class="page-section" id="login-otp-verification">
+    <div class="form-container">
+      <h2 class="form-title">Verify Login OTP</h2>
+      <form id="login-otp-form">
+        <div class="form-group">
+          <label class="form-label">Enter Login OTP</label>
+          <input type="text" class="form-input" id="login-otp-code" placeholder="Enter 6-digit code" maxlength="6" required>
+        </div>
+        <button type="submit" class="form-button">Verify & Login</button>
+        <button type="button" class="form-button" onclick="resendLoginOTP()" style="background: transparent; border: 2px solid #00ffff; color: #00ffff; margin-top: 10px;">Resend</button>
+      </form>
+      <div class="loading-spinner" id="login-otp-loading"></div>
+      <div id="login-otp-alert"></div>
+    </div>
+  </section>
+
+  <!-- KYC -->
+  <section class="page-section" id="kyc">
+    <div class="form-container" style="max-width: 800px;">
+      <h2 class="form-title">KYC Verification</h2>
+
+      <div class="dashboard-card">
+        <h3 class="card-title">📄 Aadhaar Card Verification</h3>
+        <div class="file-upload-area" onclick="document.getElementById('aadhaar-file').click()">
+          <div class="upload-icon">⬆️</div>
+          <div class="upload-text">Click to upload Aadhaar card image</div>
+        </div>
+        <input type="file" id="aadhaar-file" class="file-input" accept="image/*" onchange="uploadAadhaar(this)">
+        <div class="loading-spinner" id="aadhaar-loading"></div>
+        <div id="aadhaar-alert"></div>
+        <div id="aadhaar-results" class="results-container hidden"></div>
+      </div>
+
+      <div class="dashboard-card">
+        <h3 class="card-title">🪪 PAN Card Verification</h3>
+        <div class="file-upload-area" onclick="document.getElementById('pan-file').click()">
+          <div class="upload-icon">⬆️</div>
+          <div class="upload-text">Click to upload PAN card image</div>
+        </div>
+        <input type="file" id="pan-file" class="file-input" accept="image/*" onchange="uploadPAN(this)">
+        <div class="loading-spinner" id="pan-loading"></div>
+        <div id="pan-alert"></div>
+        <div id="pan-results" class="results-container hidden"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- User Dashboard -->
+  <section class="page-section" id="dashboard">
+    <div class="form-container" style="max-width: 1000px;">
+      <h2 class="form-title">KYC Dashboard</h2>
+      <div id="dashboard-alert"></div>
+      <div class="dashboard-grid">
+        <div class="dashboard-card">
+          <h3 class="card-title">📊 Verification Status</h3>
+          <div id="verification-status">
+            <div class="result-item"><span class="result-label">Overall Status:</span><span id="overall-status" class="status-badge status-pending">Pending</span></div>
+            <div class="result-item"><span class="result-label">Name:</span><span id="status-name" class="result-value">—</span></div>
+            <div class="result-item"><span class="result-label">Date of Birth:</span><span id="status-dob" class="result-value">—</span></div>
+            <div class="result-item"><span class="result-label">Gender:</span><span id="status-gender" class="result-value">—</span></div>
+          </div>
+        </div>
+        <div class="dashboard-card">
+          <h3 class="card-title">📋 Document Summary</h3>
+          <div id="document-summary">
+            <div class="result-item"><span class="result-label">Aadhaar Verification:</span><span id="sum-aadhaar" class="result-value">❌ Pending</span></div>
+            <div class="result-item"><span class="result-label">PAN Verification:</span><span id="sum-pan" class="result-value">❌ Pending</span></div>
+            <div class="result-item"><span class="result-label">Last Updated:</span><span id="sum-updated" class="result-value">—</span></div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top: 20px;">
+        <button class="form-button" onclick="refreshDashboard()" style="max-width: 220px;">Refresh</button>
+        <button class="form-button" onclick="cycleStatus()" style="max-width: 220px; background: transparent; border: 2px solid #00ffff; color: #00ffff;">Cycle Status</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Admin Dashboard -->
+  <section class="page-section" id="admin">
+    <div class="form-container" style="max-width: 1100px;">
+      <h2 class="form-title">Admin Dashboard</h2>
+      <div id="admin-alert"></div>
+
+      <div class="dashboard-grid">
+        <div class="dashboard-card">
+          <h3 class="card-title">📈 Overview</h3>
+          <div id="admin-stats">
+            <div class="loading-spinner" style="display:block;"></div>
+          </div>
+        </div>
+
+        <div class="dashboard-card">
+          <h3 class="card-title">👥 Users</h3>
+          <div class="admin-actions">
+            <input id="admin-search" class="form-input search-input" placeholder="Search by name, email, or ID..."/>
+            <button class="btn" onclick="searchAdminUsers()">Search</button>
+            <button class="btn btn-outline" onclick="resetAdminSearch()">Clear</button>
+          </div>
+          <div class="table-wrap">
+            <table id="admin-users-table">
+              <thead>
+                <tr>
+                  <th>User ID</th>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Status</th>
+                  <th>Updated</th>
+                </tr>
+              </thead>
+              <tbody id="admin-users-body">
+                <tr><td colspan="5"><div class="loading-spinner" style="display:block;"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- User Modal -->
+    <div class="modal" id="user-modal" onclick="modalBackdropClose(event)">
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="user-modal-title">
+        <div class="modal-header">
+          <div class="modal-title" id="user-modal-title">User Details</div>
+          <div class="close-x" onclick="closeUserModal()" aria-label="Close">✕</div>
+        </div>
+        <div class="modal-body">
+          <div id="user-detail">
+            <div class="loading-spinner" style="display:block;"></div>
+          </div>
+          <div class="row" style="margin-top:16px;">
+            <div>
+              <label class="form-label">Update Status</label>
+              <select id="user-status-select" class="select">
+                <option value="Pending">Pending</option>
+                <option value="Approved">Approved</option>
+                <option value="Rejected">Rejected</option>
+              </select>
+            </div>
+          </div>
+          <div class="row" style="margin-top:18px;">
+            <button class="btn" onclick="saveUserStatus()">Save</button>
+            <button class="btn btn-outline" onclick="closeUserModal()">Close</button>
+          </div>
+          <div id="user-modal-alert"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script src="script.js"></script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97df0cb3d15a6ed0',t:'MTc1NzY3NjM4My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+</body>
+</html>
