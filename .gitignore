@@ -16,3 +16,12 @@ build/
 *.mp4
 *.exe
 *.dll
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.dll
+*.so
+*.dylib
