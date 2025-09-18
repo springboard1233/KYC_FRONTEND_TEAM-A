@@ -1,0 +1,16 @@
+{
+  "success": true,
+  "document_type": "aadhaar",
+  "extracted_fields": {
+    "document_type": "aadhaar",
+    "aadhaar_number": "804076339915",
+    "name": "Miraya Savant Dob",
+    "date_of_birth": "13-08-2004",
+    "gender": "Female",
+    "address": null
+  },
+  "confidence_score": 88.71,
+  "raw_text": "0000 OOOO | Government of India\n\nAadhaar [pees\nName: Miraya Savant\nDOB: 13-08-2004\n\nGender: Female\nAddress: 69/38 Rout Ganj. Jodhpur. Assam - 720404\n\nAadhaar No: 804076339915\n",
+  "processing_timestamp": "2025-09-05T09:54:40.603133",
+  "processing_notes": "Enhanced OCR processing completed for aadhaar"
+}
