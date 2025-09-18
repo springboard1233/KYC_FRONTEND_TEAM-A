@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom"
-import Prism from "../components/reactComponents/Prism/Prism"
+import LetterGlitch from "../components/reactComponents/LetterGlitch/LetterGlitch"
+import logo from '../components/common/logo.svg';
 
 const ScanIcon = () => (
   <svg
@@ -58,12 +59,13 @@ const LandingPage = () => {
     <div className="bg-gradient-to-br from-black via-gray-900 to-black text-white min-h-screen">
       <header className="navbar bg-black/80 backdrop-blur-sm shadow-md px-4 fixed top-0 z-50">
         <div className="navbar-start">
-          <Link to="/" className="btn btn-ghost text-2xl font-bold text-white">
+          <img src={logo} alt="KYC Logo" className="h-15 w-15 mr-2 animate-pulse" />
+          <Link to="/" className="text-2xl font-bold text-white">
             KYC Verify
           </Link>
         </div>
         <div className="navbar-end hidden lg:flex">
-          <ul className="menu menu-horizontal px-1 text-lg text-white">
+          <ul className="menu menu-horizontal px-1 text-lg text-white -mr-80">
             <li>
               <a href="#features">Features</a>
             </li>
@@ -83,35 +85,41 @@ const LandingPage = () => {
       </header>
 
      <main className="min-h-screen bg-gradient-to-b from-black via-zinc-900 to-black text-white">
-  <section className="hero min-h-screen pt-16 !bg-transparent">
-    <div style={{ width: "100%", height: "600px", position: "relative" }}>
-      <Prism
-        animationType="rotate"
-        timeScale={0.5}
-        height={3.5}
-        baseWidth={5.5}
-        scale={3.6}
-        hueShift={0}
-        colorFrequency={1}
-        noise={0.5}
-        glow={1}
-      />
+
+
+<section className="hero min-h-screen pt-16 relative !bg-transparent overflow-hidden">
+  {/* 🔹 LetterGlitch Background with full screen wrapper */}
+  <div className="absolute inset-0 z-0">
+    {typeof window !== "undefined" && (
+  <LetterGlitch
+    glitchSpeed={50}
+    centerVignette={true}
+    outerVignette={false}
+    smooth={true}
+  />
+)}
+  </div>
+
+  {/* 🔹 Hero Content */}
+  <div className="hero-content min-h-screen flex flex-col items-center justify-center text-center relative z-10">
+    <div className="max-w-6xl">
+      <h1 className="text-5xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent whitespace-wrap text-center flex justify-center">
+        Instant, Secure, and Simple KYC Verification
+      </h1>
+      <p className="py-6 text-lg text-white text-center">
+        Leverage our advanced OCR technology to onboard customers in seconds.
+        Upload a document and let our system do the rest.
+      </p>
+      <div className="flex justify-center">
+  <Link to="/signup" className="btn btn-primary btn-lg">
+    Sign Up
+  </Link>
+</div>
     </div>
-    <div className="hero-content flex-col lg:flex-row-reverse text-center lg:text-left">
-      <div>
-        <h1 className="text-5xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-          Instant, Secure, and Simple KYC Verification
-        </h1>
-        <p className="py-6 text-lg text-white">
-          Leverage our advanced OCR technology to onboard customers in seconds.
-          Upload a document and let our system do the rest.
-        </p>
-        <Link to="/signup" className="btn btn-primary btn-lg">
-          Sign Up
-        </Link>
-      </div>
-    </div>
-  </section>
+  </div>
+</section>
+
+
 
   {/* FEATURES SECTION */}
   <section id="features" className="py-20">

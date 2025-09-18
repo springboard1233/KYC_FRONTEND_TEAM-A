@@ -7,6 +7,7 @@ import { login, RESET } from "../redux/features/authSlice"
 import { Container, Title, PrimaryButton, commonClassNameOfInput } from "../components/common/Design"
 import { toast } from "react-toastify"
 import Orb from "../components/reactComponents/Orb/Orb"
+import { Home } from "lucide-react"
 
 
 const Login = () => {
@@ -52,7 +53,17 @@ useEffect(() => {
 
 
   return (
+    
    <section className="pt-32 pb-16 bg-gradient-to-tr from-black to-gray-800 relative overflow-hidden h-screen">
+  <div className="flex justify-end -mt-24 mr-4 gap-2 relative z-20">
+  <Link
+    to="/"
+    className="p-2 rounded bg-blue-600 text-white hover:bg-blue-700 cursor-pointer"
+  >
+    <Home className="w-5 h-5" />
+  </Link>
+</div>
+
   {/* Orb Background */}
   <div className="absolute inset-0 z-0">
     <Orb
@@ -64,7 +75,7 @@ useEffect(() => {
   </div>
 
   <Container className="relative z-10">
-  <div className="max-w-md mx-auto p-8 rounded-lg">
+  <div className="max-w-md mx-auto p-8 rounded-lg mt-16">
     <Title level={3} className="text-center mb-8 text-white">
       Sign In
     </Title>

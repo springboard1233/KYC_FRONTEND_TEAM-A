@@ -6,6 +6,7 @@ import { register, RESET } from "../redux/features/authSlice"
 import { Container, Title, PrimaryButton, commonClassNameOfInput } from "../components/common/Design"
 import { toast } from "react-toastify"
 import Prismatic from "../components/reactComponents/Prismatic/Prismatic"
+import { Home } from "lucide-react"
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -61,6 +62,14 @@ useEffect(() => {
 
   return (
     <section className="relative pt-18 pb-16 bg-black">
+      <div className="flex justify-end -mt-12 mr-4 gap-2 relative z-20">
+  <Link
+    to="/"
+    className="p-2 rounded bg-blue-600 text-white hover:bg-blue-700 cursor-pointer"
+  >
+    <Home className="w-5 h-5" />
+  </Link>
+</div>
     {/* Background Layer */}
     <div className="absolute inset-0 z-0">
       <Prismatic
@@ -95,7 +104,7 @@ useEffect(() => {
             name="name"
             value={name}
             onChange={handleInputChange}
-            className={`${commonClassNameOfInput} bg-gray-900/50 text-white placeholder-gray-400`}
+            className={`${commonClassNameOfInput} bg-gray-900/50 placeholder-gray-400`}
             placeholder="Enter your full name"
             required
           />
@@ -111,7 +120,7 @@ useEffect(() => {
             name="email"
             value={email}
             onChange={handleInputChange}
-            className={`${commonClassNameOfInput} bg-gray-900/50 text-white placeholder-gray-400`}
+            className={`${commonClassNameOfInput} bg-gray-900/50 placeholder-gray-400`}
             placeholder="Enter your email"
             required
           />
@@ -127,7 +136,7 @@ useEffect(() => {
             name="password"
             value={password}
             onChange={handleInputChange}
-            className={`${commonClassNameOfInput} bg-gray-900/50 text-white placeholder-gray-400`}
+            className={`${commonClassNameOfInput} bg-gray-900/50 placeholder-gray-400`}
             placeholder="Enter your password"
             required
           />
@@ -143,7 +152,7 @@ useEffect(() => {
             name="confirmPassword"
             value={confirmPassword}
             onChange={handleInputChange}
-            className={`${commonClassNameOfInput} bg-gray-900/50 text-white placeholder-gray-400`}
+            className={`${commonClassNameOfInput} bg-gray-900/50 placeholder-gray-400`}
             placeholder="Confirm your password"
             required
           />

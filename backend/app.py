@@ -10,7 +10,7 @@ from werkzeug.utils import secure_filename
 from flask_bcrypt import Bcrypt
 from auth import init_auth, register_user, login_user
 
-from ocr import extract_aadhaar_details
+from ocr import process_document
 from verification import get_name_match_score, check_for_duplicates, is_valid_aadhaar, calculate_fraud_score
 
 UPLOAD_FOLDER = 'uploads'
@@ -37,7 +37,7 @@ MOCK_KYC_SUBMISSIONS = [
     {"id": 4, "userName": "fraud_check", "docType": "Aadhaar", "status": "Rejected", "fraudScore": 95},
 ]
 
-# --- Authentication Routes ---
+# Authentication Routes 
 @app.route('/api/users/register', methods=['POST'])
 def register_route():
     return register_user()
@@ -72,7 +72,7 @@ def upload_file():
         file.save(filepath)
 
         try:
-            extracted_data = extract_aadhaar_details(filepath)
+            extracted_data = process_document(filepath)
             # print(jsonify(extracted_data),200)
 
             if not extracted_data:
@@ -89,14 +89,56 @@ def upload_file():
         return jsonify({"error": "File type not allowed"}), 400
     
 
-# --- Main Verification API for Users ---
+# Verification API for Users 
+# @app.route('/api/verify-document', methods=['POST'])
+# def verify_document_route():
+#     if 'file' not in request.files: 
+#         return jsonify({"error": "No file part"}), 400
+    
+#     file = request.files['file']
+#     user_entered_name = request.form.get('userEnteredName')
+
+#     if not file or not user_entered_name: return jsonify({"error": "File or user name missing"}), 400
+
+#     filename = secure_filename(file.filename)
+#     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+#     if not os.path.exists(app.config['UPLOAD_FOLDER']): os.makedirs(app.config['UPLOAD_FOLDER'])
+#     file.save(filepath)
+
+#     try:
+#         extracted_text = process_document(filepath)
+#         if isinstance(extracted_text, str):
+#              return jsonify({"error": extracted_text}), 400
+
+#         doc_number = extracted_text.get("AadhaarNumber")
+#         doc_status = "Valid" if is_valid_aadhaar(doc_number) else "Invalid"
+        
+#         name_score = get_name_match_score(extracted_text.get("Name"), user_entered_name)
+#         is_duplicate = check_for_duplicates(doc_number)
+#         fraud_result = calculate_fraud_score(name_score, is_duplicate, doc_status)
+        
+#         response = {
+#             "extractedText": extracted_text,
+#             "verification": {
+#                 "documentStatus": doc_status,
+#                 "nameMatchScore": name_score,
+#                 "isDuplicate": is_duplicate,
+#                 "fraudScore": fraud_result["score"],
+#                 "reasons": fraud_result["reasons"]
+#             }
+#         }
+#         return jsonify(response), 200
+#     except Exception as e:
+#         return jsonify({"error": str(e)}), 500
+#     finally:
+#         if os.path.exists(filepath): os.remove(filepath)
+
+
 @app.route('/api/verify-document', methods=['POST'])
 def verify_document_route():
     if 'file' not in request.files: return jsonify({"error": "No file part"}), 400
-    
     file = request.files['file']
     user_entered_name = request.form.get('userEnteredName')
-
     if not file or not user_entered_name: return jsonify({"error": "File or user name missing"}), 400
 
     filename = secure_filename(file.filename)
@@ -105,11 +147,10 @@ def verify_document_route():
     file.save(filepath)
 
     try:
-        extracted_text = extract_aadhaar_details(filepath)
-        if isinstance(extracted_text, str):
-             return jsonify({"error": extracted_text}), 400
-
-        doc_number = extracted_text.get("AadhaarNumber")
+        extracted_text = process_document(filepath)
+        if "error" in extracted_text: return jsonify(extracted_text), 400
+        
+        doc_number = extracted_text.get("AadhaarNumber") or extracted_text.get("PANNumber")
         doc_status = "Valid" if is_valid_aadhaar(doc_number) else "Invalid"
         
         name_score = get_name_match_score(extracted_text.get("Name"), user_entered_name)
@@ -119,20 +160,17 @@ def verify_document_route():
         response = {
             "extractedText": extracted_text,
             "verification": {
-                "documentStatus": doc_status,
-                "nameMatchScore": name_score,
-                "isDuplicate": is_duplicate,
-                "fraudScore": fraud_result["score"],
+                "documentStatus": doc_status, "nameMatchScore": name_score,
+                "isDuplicate": is_duplicate, "fraudScore": fraud_result["score"],
                 "reasons": fraud_result["reasons"]
             }
         }
         return jsonify(response), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
     finally:
         if os.path.exists(filepath): os.remove(filepath)
 
-# --- Admin Panel APIs ---
+
+# Admin Panel APIs
 @app.route('/api/admin/submissions', methods=['GET'])
 def get_submissions():
     return jsonify(MOCK_KYC_SUBMISSIONS)

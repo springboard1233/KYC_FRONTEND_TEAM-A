@@ -41,6 +41,7 @@ const DocumentUploader = ({ docName, onFileUpload }) => {
     }
   });
 
+
   return (
     <div className="uploader-card">
       <h3 className="text-xl font-semibold mb-4 text-center">{docName}</h3>

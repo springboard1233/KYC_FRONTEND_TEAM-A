@@ -1,64 +1,78 @@
 const asyncHandler = require('express-async-handler');
 const User = require('../models/userModel');
-const Admin=require('../models/adminModel');
-const jwt=require('jsonwebtoken');
+const Admin = require('../models/adminModel');
+const jwt = require('jsonwebtoken');
 
+// Middleware to protect normal users
 const protect = asyncHandler(async (req, res, next) => {
-    try{
-        const token =req.cookies.token
-        if (!token) {
-            res.status(401);
-            throw new Error("Not authorized to access this page, please login");
-        }
+  let token;
 
-        const verified = jwt.verify(token, process.env.JWT_SECRET);
-        const user = await User.findById(verified.id).select("-password");
-
-        if(!user){
-            res.status(401);
-            throw new Error("User not found");
-        }
-        req.user = user; 
-        next(); 
-    }catch (error) {
-            res.status(401);
-            throw new Error("Not authorized to access this page, please login");
-        }
-});
-
-const protectAdmin = asyncHandler(async (req, res, next) => {
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     try {
-        const token = req.cookies.token;
-        if (!token) {
-            res.status(401);
-            throw new Error("Not authorized as an admin, please login");
-        }
+      token = req.headers.authorization.split(' ')[1];
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-        const verified = jwt.verify(token, process.env.JWT_SECRET);
-        // Find the admin in the 'admins' collection
-        const admin = await Admin.findById(verified.id).select("-password");
-
-        if (!admin) {
-            res.status(401); // User is not found in the admin collection
-            throw new Error("Admin not found. Not authorized.");
-        }
-        
-        // Also check if the user has the 'admin' role for extra security
-        if (admin.role !== 'admin') {
-            res.status(403); // 403 Forbidden
-            throw new Error("Not authorized as an admin.");
-        }
-        
-        req.user = admin; // Attach the admin user to the request object
-        next();
-    } catch (error) {
+      // Fetch user from DB
+      const user = await User.findById(decoded.id).select('-password');
+      if (!user) {
         res.status(401);
-        throw new Error("Not authorized, token failed or invalid.");
+        throw new Error('Not authorized, user not found');
+      }
+
+      req.user = user;
+      next();
+    } catch (error) {
+      console.error(error);
+      res.status(401);
+      throw new Error('Not authorized, token failed');
     }
+  } else {
+    res.status(401);
+    throw new Error('Not authorized, no token');
+  }
+});
+
+// Middleware to protect admins
+const protectAdmin = asyncHandler(async (req, res, next) => {
+  let token;
+
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    try {
+      token = req.headers.authorization.split(' ')[1];
+    //   console.log("🔑 Received token:", token);
+
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    //   console.log("✅ Decoded token:", decoded);
+
+      const admin = await Admin.findById(decoded.id).select('-password');
+      if (!admin) {
+        console.log("❌ Admin not found in DB");
+        res.status(403);
+        throw new Error('Not authorized as an admin');
+      }
+
+      if (admin.role !== 'admin') {
+        console.log("❌ Role mismatch:", admin.role);
+        res.status(403);
+        throw new Error('Not authorized as an admin');
+      }
+
+      req.admin = admin;
+      req.user=admin;
+      next();
+    } catch (error) {
+      console.error("❌ JWT error:", error.message);
+      res.status(401);
+      throw new Error('Not authorized, token failed');
+    }
+  } else {
+    res.status(401);
+    throw new Error('Not authorized, no token');
+  }
 });
 
 
-module.exports = { 
-    protect, 
-    protectAdmin,
- };
+module.exports = { protect, protectAdmin };
+
+
+
