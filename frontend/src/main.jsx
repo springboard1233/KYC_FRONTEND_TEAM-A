@@ -1,7 +1,8 @@
-// ✅ CORRECT - Only wrap the App, not individual components
+// FILE: frontend/src/main.jsx
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
+import './index.css'; // <-- Import the main stylesheet
 import App from './App.jsx'
 
 ReactDOM.createRoot(document.getElementById('root')).render(

@@ -1,89 +1,61 @@
-// utils/validationService.js
-class ValidationService {
-  constructor() {
-    this.baseURL = 'http://localhost:5000/api';
+// frontend/src/utils/validationService.js
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+
+// Aadhaar: 12 digits, not all same digit, not in blacklist
+export function validateAadhaarFormat(aadhaar) {
+  const aadhaarStr = String(aadhaar).replace(/\s+/g, "");
+  if (!/^\d{12}$/.test(aadhaarStr)) {
+    return { valid: false, error: "Aadhaar must be 12 digits." };
   }
-
-  async validateAadhaar(aadhaarNumber) {
-    try {
-      const token = localStorage.getItem('access_token');
-      const response = await fetch(`${this.baseURL}/validate-aadhaar`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ number: aadhaarNumber })
-      });
-
-      const data = await response.json();
-      return {
-        success: response.ok,
-        data: data
-      };
-    } catch (error) {
-      console.error('Aadhaar validation error:', error);
-      return {
-        success: false,
-        error: error.message
-      };
-    }
+  if (/^(\d)\1{11}$/.test(aadhaarStr)) {
+    return { valid: false, error: "Aadhaar cannot have all digits the same." };
   }
+  // Add more blacklist checks as needed
+  return { valid: true };
+}
 
-  async validatePAN(panNumber) {
-    try {
-      const token = localStorage.getItem('access_token');
-      const response = await fetch(`${this.baseURL}/validate-pan`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ number: panNumber })
-      });
-
-      const data = await response.json();
-      return {
-        success: response.ok,
-        data: data
-      };
-    } catch (error) {
-      console.error('PAN validation error:', error);
-      return {
-        success: false,
-        error: error.message
-      };
-    }
+// PAN: 5 letters, 4 digits, 1 letter (e.g., ABCDE1234F)
+export function validatePANFormat(pan) {
+  const panStr = String(pan).toUpperCase().replace(/\s+/g, "");
+  if (!/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(panStr)) {
+    return { valid: false, error: "PAN must be in format: ABCDE1234F." };
   }
+  return { valid: true };
+}
 
-  async validateDocument(documentType, extractedFields) {
-    try {
-      const token = localStorage.getItem('access_token');
-      const response = await fetch(`${this.baseURL}/validate-document`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          document_type: documentType,
-          extracted_fields: extractedFields
-        })
-      });
-
-      const data = await response.json();
-      return {
-        success: response.ok,
-        data: data
-      };
-    } catch (error) {
-      console.error('Document validation error:', error);
-      return {
-        success: false,
-        error: error.message
-      };
+// Mock API: Aadhaar verification (simulate UIDAI sandbox)
+export async function verifyAadhaarAPI(aadhaar) {
+  try {
+    const res = await fetch(`${API_BASE_URL}/mock/verify-aadhaar`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ aadhaar }),
+    });
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(error.message || "Aadhaar verification failed");
     }
+    return await res.json();
+  } catch (err) {
+    return { success: false, error: err.message };
   }
 }
 
-export const validationService = new ValidationService();
+// Mock API: PAN verification
+export async function verifyPANAPI(pan) {
+  try {
+    const res = await fetch(`${API_BASE_URL}/mock/verify-pan`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pan }),
+    });
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(error.message || "PAN verification failed");
+    }
+    return await res.json();
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}

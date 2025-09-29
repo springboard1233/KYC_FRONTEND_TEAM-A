@@ -1,229 +1,155 @@
-import React, { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Shield, Mail, RefreshCw, ArrowLeft, CheckCircle } from 'lucide-react'
+// CHANGELOG: Modernized with a single-field OTP input, a visual countdown timer, and a celebratory success animation.
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Shield, Clock, RefreshCw, ArrowLeft, CheckCircle, Loader } from 'lucide-react';
+import { authService } from '../utils/auth';
 
-const OTPVerification = ({ email, name, onBack }) => {
-  const [otp, setOtp] = useState(['', '', '', '', '', ''])
-  const [loading, setLoading] = useState(false)
-  const [resending, setResending] = useState(false)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
-  const [timeLeft, setTimeLeft] = useState(600) // 10 minutes
-  const navigate = useNavigate()
-  const inputRefs = useRef([])
+// --- CUSTOM HOOK FOR OTP LOGIC ---
 
-  // Countdown timer
+const useOtpVerification = ({ email, onSuccess }) => {
+  const [otp, setOtp] = useState('');
+  const [timeLeft, setTimeLeft] = useState(600);
+  const [status, setStatus] = useState({ loading: false, resending: false, error: '', success: '' });
+  
   useEffect(() => {
-    if (timeLeft > 0) {
-      const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000)
-      return () => clearTimeout(timer)
+    if (timeLeft > 0 && !status.success) {
+      const timer = setTimeout(() => setTimeLeft(t => t - 1), 1000);
+      return () => clearTimeout(timer);
     }
-  }, [timeLeft])
+  }, [timeLeft, status.success]);
 
-  const formatTime = (seconds) => {
-    const minutes = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${minutes}:${secs.toString().padStart(2, '0')}`
-  }
-
-  const handleOtpChange = (index, value) => {
-    if (!/^\d*$/.test(value)) return
-
-    const newOtp = [...otp]
-    newOtp[index] = value.slice(-1)
-    setOtp(newOtp)
-    setError('')
-
-    // Auto-focus next input
-    if (value && index < 5) {
-      inputRefs.current[index + 1]?.focus()
+  const handleVerify = useCallback(async () => {
+    if (otp.length !== 6) {
+      setStatus(s => ({ ...s, error: 'Please enter the complete 6-digit OTP.' }));
+      return;
     }
-  }
-
-  const handleKeyDown = (index, e) => {
-    if (e.key === 'Backspace' && !otp[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus()
-    }
-  }
-
-  const handleVerify = async () => {
-    const otpValue = otp.join('')
-    
-    if (otpValue.length !== 6) {
-      setError('Please enter the complete 6-digit OTP')
-      return
-    }
-
-    setLoading(true)
-    setError('')
-
+    setStatus({ loading: true, resending: false, error: '', success: '' });
     try {
-      const response = await fetch('http://localhost:5000/api/verify-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, otp: otpValue })
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        // Store token and user data
-        localStorage.setItem('access_token', data.access_token)
-        localStorage.setItem('user', JSON.stringify(data.user))
-        
-        setSuccess('Email verified successfully! Redirecting to dashboard...')
-        
-        setTimeout(() => {
-          navigate('/dashboard')
-        }, 2000)
-      } else {
-        setError(data.error || 'Invalid OTP. Please try again.')
-      }
+      await authService.verifyOtp(email, otp);
+      setStatus({ loading: false, resending: false, error: '', success: 'Email verified successfully!' });
+      setTimeout(onSuccess, 2000);
     } catch (err) {
-      setError('Network error. Please check your connection.')
-    } finally {
-      setLoading(false)
+      setStatus({ loading: false, resending: false, error: err.message || 'Invalid OTP.', success: '' });
     }
-  }
+  }, [otp, email, onSuccess]);
 
-  const handleResendOTP = async () => {
-    setResending(true)
-    setError('')
-
+  const handleResend = useCallback(async () => {
+    setStatus({ loading: false, resending: true, error: '', success: '' });
     try {
-      const response = await fetch('http://localhost:5000/api/resend-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        setSuccess('New OTP sent successfully!')
-        setTimeLeft(600) // Reset timer
-        setOtp(['', '', '', '', '', '']) // Clear current OTP
-        inputRefs.current[0]?.focus()
-      } else {
-        setError(data.error || 'Failed to resend OTP')
-      }
+      await authService.resendOtp(email);
+      setOtp('');
+      setTimeLeft(600);
+      setStatus(s => ({ ...s, resending: false, success: 'A new OTP has been sent.' }));
     } catch (err) {
-      setError('Network error. Please try again.')
-    } finally {
-      setResending(false)
+      setStatus(s => ({ ...s, resending: false, error: err.message || 'Failed to resend OTP.' }));
     }
-  }
+  }, [email]);
+
+  return { otp, setOtp, timeLeft, status, handleVerify, handleResend };
+};
+
+// --- REUSABLE SUB-COMPONENTS ---
+
+const CountdownCircle = ({ timeLeft }) => {
+    const radius = 24;
+    const circumference = 2 * Math.PI * radius;
+    const progress = (timeLeft / 600) * circumference;
+    const formatTime = (seconds) => `${Math.floor(seconds / 60)}:${(seconds % 60).toString().padStart(2, '0')}`;
+
+    return (
+        <div className="relative w-16 h-16 flex items-center justify-center">
+            <svg className="absolute w-full h-full" viewBox="0 0 52 52">
+                <circle className="text-gray-700" stroke="currentColor" strokeWidth="3" fill="transparent" r={radius} cx="26" cy="26" />
+                <motion.circle
+                    className="text-yellow-400" stroke="currentColor" strokeWidth="3" fill="transparent" r={radius} cx="26" cy="26"
+                    strokeDasharray={circumference} initial={{ strokeDashoffset: 0 }} animate={{ strokeDashoffset: circumference - progress }}
+                    transition={{ duration: 1, ease: 'linear' }} transform="rotate(-90 26 26)"
+                />
+            </svg>
+            <span className="font-mono font-bold text-yellow-400">{formatTime(timeLeft)}</span>
+        </div>
+    );
+};
+
+const OtpInput = ({ value, onChange }) => {
+    const inputRef = useRef(null);
+    return (
+        <div className="relative flex justify-center items-center" onClick={() => inputRef.current?.focus()}>
+            <input
+                ref={inputRef}
+                type="tel"
+                maxLength="6"
+                value={value}
+                onChange={(e) => /^\d*$/.test(e.target.value) && onChange(e.target.value)}
+                className="absolute w-full h-full opacity-0"
+                aria-label="One Time Password"
+            />
+            <div className="flex space-x-2">
+                {Array.from({ length: 6 }).map((_, index) => (
+                    <div key={index} className={`w-12 h-14 flex items-center justify-center text-2xl font-bold bg-gray-700/50 border-2 rounded-lg text-white transition-colors
+                        ${value.length === index && 'border-blue-500'}
+                        ${value.length > index ? 'border-gray-500' : 'border-gray-600'}
+                    `}>
+                        {value[index] || (value.length === index ? <motion.div className="w-0.5 h-6 bg-blue-500" animate={{ opacity: [0, 1, 0] }} transition={{ repeat: Infinity, duration: 1.2 }} /> : null)}
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+// --- MAIN OTP COMPONENT ---
+
+const OTPVerification = ({ email, onBack }) => {
+  const navigate = useNavigate();
+  const { otp, setOtp, timeLeft, status, handleVerify, handleResend } = useOtpVerification({
+    email,
+    onSuccess: () => navigate('/dashboard'),
+  });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="bg-gray-800/50 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-700/50 p-8">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Shield className="h-8 w-8 text-white" />
+    <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+      <AnimatePresence>
+        {status.success ? (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
+            <motion.div initial={{ scale: 0.5 }} animate={{ scale: 1 }} transition={{ type: 'spring' }}>
+              <CheckCircle className="h-24 w-24 text-green-400 mx-auto" />
+            </motion.div>
+            <h2 className="text-2xl font-bold text-white mt-4">{status.success}</h2>
+            <p className="text-gray-400">Redirecting to your dashboard...</p>
+          </motion.div>
+        ) : (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md bg-white/5 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/10 p-8">
+            <div className="text-center mb-6">
+              <Shield className="h-10 w-10 text-blue-300 mx-auto mb-3" />
+              <h1 className="text-2xl font-bold text-white">Enter Verification Code</h1>
+              <p className="text-gray-300 text-sm mt-1">A 6-digit code was sent to <span className="font-medium text-blue-400">{email}</span></p>
             </div>
-            <h1 className="text-2xl font-bold text-white mb-2">Verify Your Email</h1>
-            <p className="text-gray-300 text-sm">
-              We've sent a 6-digit verification code to
-            </p>
-            <p className="text-blue-400 font-medium">{email}</p>
-          </div>
+            
+            <div className="flex justify-center mb-6"><CountdownCircle timeLeft={timeLeft} /></div>
+            
+            <OtpInput value={otp} onChange={setOtp} />
 
-          {/* Timer */}
-          <div className="text-center mb-6">
-            <div className="inline-flex items-center bg-gray-700/50 rounded-lg px-4 py-2">
-              <Mail className="h-4 w-4 text-gray-400 mr-2" />
-              <span className="text-sm text-gray-300">
-                Code expires in: <span className="font-bold text-yellow-400">{formatTime(timeLeft)}</span>
-              </span>
-            </div>
-          </div>
-
-          {/* OTP Input */}
-          <div className="flex justify-center space-x-2 mb-6">
-            {otp.map((digit, index) => (
-              <input
-                key={index}
-                ref={el => inputRefs.current[index] = el}
-                type="text"
-                maxLength="1"
-                value={digit}
-                onChange={(e) => handleOtpChange(index, e.target.value)}
-                onKeyDown={(e) => handleKeyDown(index, e)}
-                className="w-12 h-12 text-center text-xl font-bold bg-gray-700/50 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                disabled={loading}
-              />
-            ))}
-          </div>
-
-          {/* Error Message */}
-          {error && (
-            <div className="mb-4 p-3 bg-red-900/30 border border-red-500/30 rounded-lg">
-              <p className="text-red-300 text-sm text-center">{error}</p>
-            </div>
-          )}
-
-          {/* Success Message */}
-          {success && (
-            <div className="mb-4 p-3 bg-green-900/30 border border-green-500/30 rounded-lg">
-              <div className="flex items-center justify-center">
-                <CheckCircle className="h-4 w-4 text-green-400 mr-2" />
-                <p className="text-green-300 text-sm">{success}</p>
-              </div>
-            </div>
-          )}
-
-          {/* Verify Button */}
-          <button
-            onClick={handleVerify}
-            disabled={loading || otp.some(digit => !digit)}
-            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-4 rounded-xl font-medium hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-lg mb-4"
-          >
-            {loading ? (
-              <div className="flex items-center justify-center">
-                <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent mr-2"></div>
-                Verifying...
-              </div>
-            ) : (
-              'Verify Email'
-            )}
-          </button>
-
-          {/* Resend OTP */}
-          <div className="text-center">
-            <p className="text-gray-400 text-sm mb-2">Didn't receive the code?</p>
-            <button
-              onClick={handleResendOTP}
-              disabled={resending || timeLeft > 570} // Allow resend after 30 seconds
-              className="text-blue-400 hover:text-blue-300 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center mx-auto"
-            >
-              {resending ? (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
-                  Sending...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-1" />
-                  Resend OTP
-                </>
-              )}
+            {status.error && <p className="text-red-400 text-sm text-center mt-4">{status.error}</p>}
+            
+            <button onClick={handleVerify} disabled={status.loading || otp.length !== 6}
+              className="w-full mt-6 bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-xl font-medium disabled:opacity-50 transition">
+              {status.loading ? <Loader className="animate-spin h-5 w-5 mx-auto" /> : 'Verify'}
             </button>
-          </div>
-
-          {/* Back Button */}
-          <button
-            onClick={onBack}
-            className="w-full mt-6 flex items-center justify-center text-gray-400 hover:text-gray-300 font-medium text-sm"
-          >
-            <ArrowLeft className="h-4 w-4 mr-1" />
-            Back to Signup
-          </button>
-        </div>
-      </div>
+            
+            <div className="flex justify-between items-center mt-6 text-sm">
+              <button onClick={onBack} className="text-gray-400 hover:text-white flex items-center gap-1"><ArrowLeft className="h-4 w-4" /> Back</button>
+              <button onClick={handleResend} disabled={status.resending || timeLeft > 540} className="text-blue-400 hover:text-white disabled:opacity-50 flex items-center gap-1">
+                {status.resending ? <Loader className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Resend Code
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
-  )
-}
+  );
+};
 
-export default OTPVerification
+export default OTPVerification;
+

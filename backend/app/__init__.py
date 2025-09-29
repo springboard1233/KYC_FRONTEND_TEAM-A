@@ -1,136 +1,113 @@
-from flask import Flask, jsonify, request
+
 from flask_jwt_extended import JWTManager
-from flask_cors import CORS
-from .config import config_map
-from .utils.database import db
+from .routes.records import records_bp
+from .routes.health import health_bp
+from flask import Flask, jsonify, request
 import os
+from .config import config_map
 import logging
+from flask_cors import CORS
+from .utils.database import db
+
+from .routes.admin import admin_bp
+from .routes.auth import auth_bp
+from .routes.ocr import ocr_bp
+from .routes.audit import audit_bp
+# from .routes.compliance import compliance_bp  # <-- Disabled to prevent conflict with FastAPI service
+
 
 def create_app(config_name=None):
-    """Application factory pattern"""
-    
-    # Create Flask app
+    """
+    Application factory function to create and configure the Flask app.
+    """
     app = Flask(__name__)
-    
-    # Load configuration
-    config_name = config_name or os.getenv('FLASK_ENV', 'development')
-    app.config.from_object(config_map.get(config_name, config_map['default']))
-    
-    # Configure detailed logging
+
+    # 1. Load Configuration
+    if config_name is None:
+        config_name = os.getenv("FLASK_ENV", "development")
+    app.config.from_object(config_map[config_name])
+
+    # Load allowed extensions from config
+    app.config.setdefault("ALLOWED_EXTENSIONS", {"png", "jpg", "jpeg", "pdf"})
+
+    # 2. Configure Logging
     logging.basicConfig(
-        level=logging.DEBUG,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
-    
-    # Initialize extensions
-    jwt = JWTManager(app)
-    
-    # Configure CORS
-    CORS(app, 
-         origins=["http://localhost:5173", "http://127.0.0.1:5173"],
-         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-         allow_headers=["Content-Type", "Authorization"],
-         supports_credentials=True)
-    
-    # Initialize database
-    with app.app_context():
-        try:
-            db.connect()
-            print("✅ Database connected successfully")
-        except Exception as e:
-            print(f"❌ Database connection failed: {e}")
-    
-    # Handle preflight requests globally
-    @app.before_request
-    def handle_preflight():
-        if request.method == "OPTIONS":
-            response = jsonify({'message': 'OK'})
-            response.headers.add("Access-Control-Allow-Origin", "http://localhost:5173")
-            response.headers.add('Access-Control-Allow-Headers', "Content-Type,Authorization")
-            response.headers.add('Access-Control-Allow-Methods', "GET,PUT,POST,DELETE,OPTIONS")
-            return response
-    
-    # Root route
-    @app.route('/')
-    def index():
-        """Root endpoint - API information"""
-        return jsonify({
-            'message': 'KYC Verification System API',
-            'version': '1.0.0',
-            'status': 'running',
-            'endpoints': {
-                'health': '/health',
-                'signup': '/api/signup',
-                'login': '/api/login',
-                'profile': '/api/me',
-                'extract': '/api/extract',
-                'records': '/api/records',
-                'record_stats': '/api/records/stats'  # ← Make sure this is listed
+    logger = logging.getLogger(__name__)
+
+    # 3. Initialize Extensions
+    CORS(
+        app,
+        resources={
+            r"/*": {
+                "origins": [
+                    "http://localhost:5173",
+                    "http://localhost:5174",
+                    "http://127.0.0.1:5173",
+                    "http://127.0.0.1:5174",
+                ]
             }
-        })
-    
-    # Register blueprints - THIS IS CRITICAL
-    from .routes.health import health_bp
-    from .routes.auth import auth_bp, check_if_token_revoked
-    from .routes.ocr import ocr_bp
-    
-    # ✅ MAKE SURE THIS LINE EXISTS:
-    try:
-        from .routes.records import records_bp
-        app.register_blueprint(records_bp)
-        print("✅ Records blueprint registered successfully")
-    except ImportError as e:
-        print(f"❌ Failed to import records blueprint: {e}")
-        # Add temporary stats route to prevent 404
-        @app.route('/api/records/stats', methods=['GET'])
-        def temp_stats():
-            return jsonify({
-                'stats': {
-                    'total_records': 0,
-                    'aadhaar_count': 0,
-                    'pan_count': 0,
-                    'verified_count': 0,
-                    'avg_confidence': 0
-                }
-            })
-        print("✅ Temporary stats route added")
-    
+        },
+        supports_credentials=True,
+        allow_headers=[
+            "Content-Type",
+            "Authorization",
+            "Access-Control-Allow-Credentials",
+        ],
+        methods=["GET", "PUT", "POST", "DELETE", "OPTIONS"],
+    )
+
+    jwt = JWTManager(app)
+    db.init_app(app)  # Initialize the database with the app
+
+    # 4. Register Blueprints
+    app.register_blueprint(auth_bp, url_prefix="/api")
+    app.register_blueprint(ocr_bp, url_prefix="/api")
+    app.register_blueprint(records_bp, url_prefix="/api")
+    app.register_blueprint(admin_bp, url_prefix="/api/admin")
+    app.register_blueprint(audit_bp, url_prefix="/api")
+    # app.register_blueprint(compliance_bp)  # <-- Disabled to prevent conflict with FastAPI service
     app.register_blueprint(health_bp)
-    app.register_blueprint(auth_bp)
-    app.register_blueprint(ocr_bp)
-    
-    # Create upload directory
-    upload_folder = app.config['UPLOAD_FOLDER']
-    os.makedirs(upload_folder, exist_ok=True)
-    
-    # JWT configuration
-    @jwt.token_in_blocklist_loader
-    def check_if_token_is_revoked(jwt_header, jwt_payload):
-        return check_if_token_revoked(jwt_header, jwt_payload)
-    
-    # JWT error handlers
+    logger.info("✅ All blueprints registered successfully.")
+
+    # 5. Create upload directory if it's defined in config
+    if "UPLOAD_FOLDER" in app.config and app.config["UPLOAD_FOLDER"]:
+        try:
+            os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+            logger.info(f"Upload folder '{app.config['UPLOAD_FOLDER']}' is ready.")
+        except OSError as e:
+            logger.error(f"Error creating upload folder: {e}")
+
+    # 6. Define JWT Error Handlers
     @jwt.expired_token_loader
     def expired_token_callback(jwt_header, jwt_payload):
-        return jsonify({
-            'error': 'Token has expired', 
-            'message': 'Please login again',
-            'code': 'TOKEN_EXPIRED'
-        }), 401
-    
+        return jsonify(
+            {"error": "Token has expired", "message": "Please login again"}
+        ), 401
+
     @jwt.invalid_token_loader
     def invalid_token_callback(error):
-        return jsonify({
-            'error': 'Invalid token', 
-            'message': 'Please login again',
-            'code': 'TOKEN_INVALID'
-        }), 401
-    
+        return jsonify(
+            {"error": "Invalid token", "message": "Signature verification failed"}
+        ), 401
+
     @jwt.unauthorized_loader
     def missing_token_callback(error):
-        return jsonify({
-            'error': 'Authorization token required', 
-            'message': 'Please login to access this resource',
-            'code': 'TOKEN_MISSING'
-        }), 401
-    
+        return jsonify(
+            {
+                "error": "Authorization token required",
+                "message": "Request does not contain an access token",
+            }
+        ), 401
+
+    # 7. CORS is handled by flask-cors extension above
+
+    # 8. Handle OPTIONS requests explicitly
+    @app.route("/", defaults={"path": ""}, methods=["OPTIONS"])
+    @app.route("/<path:path>", methods=["OPTIONS"])
+    def options_handler(path):
+        return "", 200
+
     return app

@@ -1,405 +1,127 @@
-import React, { useState, useRef, useEffect } from 'react';
-// Link and useNavigate are removed as they require a Router context which is missing.
-import { Eye, EyeOff, Mail, Lock, User, Shield, Loader, ArrowLeft } from 'lucide-react';
+// CHANGELOG: Fixed a ReferenceError by adding the missing 'memo' import from React.
+import React, { useState, useMemo, useCallback, memo } from "react"; // Corrected this line
+import { useNavigate, Link } from "react-router-dom";
+import { motion, AnimatePresence } from 'framer-motion';
+import { authService } from "../utils/auth";
+import OTPVerification from "./OTPVerification";
+import { Eye, EyeOff, User, Mail, Lock, AlertCircle, UserPlus, Shield, Loader } from "lucide-react";
 
-// OTPVerification component is now included in the same file
-const OTPVerification = ({ email, name, onBack }) => {
-    const [otp, setOtp] = useState(new Array(6).fill(""));
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
-    const [successMessage, setSuccessMessage] = useState('');
-    const [resendCooldown, setResendCooldown] = useState(0);
-    const inputRefs = useRef([]);
-    // const navigate = useNavigate(); // Removed useNavigate hook
+// --- CUSTOM HOOK FOR SIGNUP LOGIC ---
 
-    useEffect(() => {
-        if (resendCooldown > 0) {
-            const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
-            return () => clearTimeout(timer);
-        }
-    }, [resendCooldown]);
+const useSignup = ({ onSuccess }) => {
+    const [formData, setFormData] = useState({ name: '', email: '', password: '' });
+    const [status, setStatus] = useState({ loading: false, error: '' });
 
-    const handleChange = (element, index) => {
-        if (isNaN(element.value)) return false;
-
-        setOtp([...otp.map((d, idx) => (idx === index ? element.value : d))]);
-
-        // Focus next input
-        if (element.nextSibling && element.value) {
-            element.nextSibling.focus();
-        }
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleKeyDown = (e, index) => {
-        if (e.key === "Backspace" && !otp[index] && index > 0) {
-            inputRefs.current[index - 1].focus();
-        }
-    };
-
-    const handleVerify = async () => {
-        const enteredOtp = otp.join("");
-        if (enteredOtp.length < 6) {
-            setError("Please enter the complete 6-digit OTP.");
-            return;
-        }
-
-        setLoading(true);
-        setError('');
-        setSuccessMessage('');
-
+    const handleSubmit = useCallback(async (e) => {
+        e.preventDefault();
+        setStatus({ loading: true, error: '' });
         try {
-            const response = await fetch('http://localhost:5000/api/verify-otp', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, otp: enteredOtp }),
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                // Store token and user data, then navigate
-                localStorage.setItem('accessToken', data.access_token);
-                localStorage.setItem('user', JSON.stringify(data.user));
-                setSuccessMessage('Verification successful! Redirecting...');
-                // Replace navigate with window.location.href
-                setTimeout(() => window.location.href = '/dashboard', 2000);
+            const result = await authService.signup(formData.name, formData.email, formData.password);
+            if (result.success) {
+                onSuccess(formData.email);
             } else {
-                throw new Error(data.error || 'OTP verification failed');
+                setStatus({ loading: false, error: result.error || "Signup failed." });
             }
         } catch (err) {
-            setError(err.message || "An unexpected error occurred.");
-        } finally {
-            setLoading(false);
+            setStatus({ loading: false, error: "An unexpected error occurred." });
         }
-    };
+    }, [formData, onSuccess]);
 
-    const handleResend = async () => {
-        if (resendCooldown > 0) return;
-
-        setLoading(true);
-        setError('');
-        setSuccessMessage('');
-
-        try {
-            const response = await fetch('http://localhost:5000/api/resend-otp', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email }),
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                setSuccessMessage("A new OTP has been sent to your email.");
-                setResendCooldown(60); // 60-second cooldown
-            } else {
-                throw new Error(data.error || 'Failed to resend OTP.');
-            }
-        } catch (err) {
-            setError(err.message || "An unexpected error occurred.");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 flex items-center justify-center p-4">
-            <div className="w-full max-w-md bg-gray-800/50 border border-gray-700 rounded-2xl p-8 backdrop-blur-sm text-white shadow-2xl">
-                <button onClick={onBack} className="flex items-center text-sm text-blue-400 hover:text-blue-300 mb-6">
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Back to Signup
-                </button>
-
-                <div className="text-center mb-6">
-                    <Shield className="h-12 w-12 text-blue-500 mx-auto mb-4" />
-                    <h2 className="text-3xl font-bold">Email Verification</h2>
-                    <p className="text-gray-400 mt-2">
-                        Enter the 6-digit code sent to <span className="font-medium text-blue-300">{email}</span>
-                    </p>
-                </div>
-
-                <div className="flex justify-center space-x-2 mb-6">
-                    {otp.map((data, index) => (
-                        <input
-                            key={index}
-                            ref={el => (inputRefs.current[index] = el)}
-                            type="text"
-                            maxLength="1"
-                            value={data}
-                            onChange={e => handleChange(e.target, index)}
-                            onKeyDown={e => handleKeyDown(e, index)}
-                            onFocus={e => e.target.select()}
-                            className="w-12 h-14 bg-gray-900/50 border border-gray-600 rounded-lg text-center text-2xl font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                    ))}
-                </div>
-
-                {error && <p className="text-red-400 text-center text-sm mb-4">{error}</p>}
-                {successMessage && <p className="text-green-400 text-center text-sm mb-4">{successMessage}</p>}
-
-                <button
-                    onClick={handleVerify}
-                    disabled={loading}
-                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-4 rounded-xl font-medium hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-lg flex items-center justify-center"
-                >
-                    {loading ? <Loader className="animate-spin h-5 w-5" /> : 'Verify Account'}
-                </button>
-
-                <div className="mt-6 text-center text-sm text-gray-400">
-                    Didn't receive the code?{' '}
-                    <button
-                        onClick={handleResend}
-                        disabled={resendCooldown > 0 || loading}
-                        className="text-blue-400 hover:text-blue-300 font-medium disabled:text-gray-500 disabled:cursor-not-allowed"
-                    >
-                        {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend OTP'}
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
+    return { ...formData, ...status, handleChange, handleSubmit };
 };
 
+// --- REUSABLE SUB-COMPONENTS ---
+
+const PasswordStrengthIndicator = memo(({ password }) => {
+    const strength = useMemo(() => {
+        let score = 0;
+        if (password.length >= 8) score++;
+        if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score++;
+        if (/\d/.test(password)) score++;
+        if (/[^A-Za-z0-9]/.test(password)) score++;
+        return score;
+    }, [password]);
+    
+    const bars = Array.from({ length: 4 }).map((_, index) => {
+        const isActive = index < strength;
+        const color = strength === 1 ? 'bg-red-500' : strength === 2 ? 'bg-yellow-500' : strength >= 3 ? 'bg-green-500' : 'bg-gray-600';
+        return <div key={index} className={`h-1 flex-1 rounded-full ${isActive ? color : 'bg-gray-600'}`} />;
+    });
+
+    return <div className="flex gap-2 mt-2">{bars}</div>;
+});
+
+// --- MAIN SIGNUP COMPONENT ---
 
 const Signup = () => {
-  const [step, setStep] = useState('signup'); // 'signup' or 'otp'
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: ''
-  });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [flowState, setFlowState] = useState({ step: 'signup', email: '' });
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-    if (error) setError('');
+  const { name, email, password, loading, error, handleChange, handleSubmit } = useSignup({
+    onSuccess: (submittedEmail) => setFlowState({ step: 'otp', email: submittedEmail }),
+  });
+  
+  const formVariants = {
+    hidden: { opacity: 0, x: -50 },
+    visible: { opacity: 1, x: 0 },
+    exit: { opacity: 0, x: 50 },
   };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match. Please re-enter.');
-      return;
-    }
-    if (formData.password.length < 8) {
-      setError('Password must be at least 8 characters long.');
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-
-    try {
-      const response = await fetch('http://localhost:5000/api/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password
-        })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        // Throw an error with the message from the backend, including the status code.
-        throw new Error(`${data.error || 'An unknown error occurred.'} (status: ${response.status})`);
-      }
-
-      if (response.ok && data.otp_required) {
-        setStep('otp');
-      } else {
-        setError('Signup successful, but OTP flow was not initiated. Please contact support.');
-      }
-    } catch (err) {
-      const errorMessage = err.message.toLowerCase();
-      if (errorMessage.includes('409') || errorMessage.includes('already exists')) {
-        setError('An account with this email already exists. Please try logging in instead.');
-      } else if (errorMessage.includes('network') || errorMessage.includes('failed to fetch')) {
-        setError('Network error. Please check your connection and try again.');
-      } else {
-        // Clean up the error message for display, removing the status code part
-        const displayError = err.message.split('(status:')[0].trim();
-        setError(displayError || 'Registration failed. Please try again.');
-      }
-      console.error("Signup error:", err);
-    } finally {
-      setLoading(false);
-    }
+  const otpVariants = {
+    hidden: { opacity: 0, x: 50 },
+    visible: { opacity: 1, x: 0 },
+    exit: { opacity: 0, x: -50 },
   };
-
-  if (step === 'otp') {
-    return (
-      <OTPVerification
-        email={formData.email}
-        name={formData.name}
-        onBack={() => setStep('signup')}
-      />
-    );
-  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 flex">
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-700 p-12 text-white relative overflow-hidden">
-        <div className="absolute inset-0 bg-black/20"></div>
-        <div className="relative z-10 flex flex-col justify-center max-w-lg">
-          <div className="mb-8">
-            <Shield className="h-16 w-16 text-blue-200 mb-6" />
-            <h1 className="text-4xl font-bold mb-4 leading-tight">
-              Join the Future of
-              <span className="block text-blue-200">Identity Verification</span>
-            </h1>
-            <p className="text-xl text-blue-100 leading-relaxed">
-              Create an account to access powerful AI verification tools, ensure compliance, and protect against identity fraud.
-            </p>
-          </div>
-          
-          <div className="space-y-4">
-            <div className="flex items-center">
-              <div className="w-2 h-2 bg-blue-200 rounded-full mr-3"></div>
-              <span className="text-blue-100">AI-powered document analysis</span>
-            </div>
-            <div className="flex items-center">
-              <div className="w-2 h-2 bg-blue-200 rounded-full mr-3"></div>
-              <span className="text-blue-100">Real-time fraud detection</span>
-            </div>
-            <div className="flex items-center">
-              <div className="w-2 h-2 bg-blue-200 rounded-full mr-3"></div>
-              <span className="text-blue-100">Compliance management tools</span>
-            </div>
-          </div>
-        </div>
+    <div className="min-h-screen flex items-center justify-center bg-gray-900 p-4 overflow-hidden relative">
+      {/* Animated background matching Login page */}
+      <div className="absolute top-0 left-0 w-full h-full z-0">
+          <motion.div className="absolute top-[10%] left-[10%] w-72 h-72 bg-blue-600/30 rounded-full filter blur-3xl" animate={{ x: [0, 50, 0], y: [0, -50, 0] }} transition={{ duration: 20, repeat: Infinity, repeatType: 'reverse' }} />
+          <motion.div className="absolute bottom-[10%] right-[10%] w-72 h-72 bg-purple-600/30 rounded-full filter blur-3xl" animate={{ x: [0, -50, 0], y: [0, 50, 0] }} transition={{ duration: 25, repeat: Infinity, repeatType: 'reverse', delay: 5 }} />
       </div>
-
-      <div className="flex-1 flex items-center justify-center p-8">
-        <div className="w-full max-w-md">
-          <div className="text-center mb-8">
-            <div className="lg:hidden mb-6">
-              <Shield className="h-12 w-12 text-blue-500 mx-auto mb-4" />
-            </div>
-            <h2 className="text-3xl font-bold text-white mb-2">Create Account</h2>
-            <p className="text-gray-400">Get started with your KYC verification platform</p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Full Name
-              </label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  required
-                  className="w-full pl-10 pr-4 py-3 bg-gray-800/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm"
-                  placeholder="Enter your full name"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Email Address
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                  className="w-full pl-10 pr-4 py-3 bg-gray-800/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm"
-                  placeholder="Enter your email"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <input
-                  type={showPassword ? "text" : "password"}
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                  className="w-full pl-10 pr-12 py-3 bg-gray-800/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm"
-                  placeholder="Create a password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300"
-                >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Confirm Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <input
-                  type="password"
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  required
-                  className="w-full pl-10 pr-4 py-3 bg-gray-800/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm"
-                  placeholder="Confirm your password"
-                />
-              </div>
-            </div>
-
-            {error && (
-              <div className="bg-red-900/30 border border-red-500/30 rounded-lg p-3">
-                <p className="text-red-300 text-sm text-center">{error}</p>
-              </div>
+      
+      <div className="w-full max-w-md z-10 bg-white/5 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/10">
+        <AnimatePresence mode="wait">
+            {flowState.step === 'signup' ? (
+                <motion.div key="signup" variants={formVariants} initial="hidden" animate="visible" exit="exit" className="overflow-hidden">
+                    <div className="p-8">
+                        <div className="text-center mb-6">
+                            <Shield className="h-10 w-10 text-blue-300 mx-auto mb-3" />
+                            <h1 className="text-3xl font-bold text-white">Create an Account</h1>
+                            <p className="text-blue-200/80 mt-1">Join the AI-KYC Platform</p>
+                        </div>
+                        {error && <div className="mb-4 p-3 bg-red-500/20 text-red-300 text-sm rounded-lg flex items-center gap-2"><AlertCircle className="h-5 w-5" />{error}</div>}
+                        <form onSubmit={handleSubmit} className="space-y-5">
+                            <div>
+                                <label className="block mb-2 text-sm font-medium text-blue-200" htmlFor="name">Full Name</label>
+                                <div className="relative"><User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" /><input id="name" name="name" type="text" required value={name} onChange={handleChange} className="w-full pl-11 pr-4 py-3 bg-white/10 border border-gray-500/30 rounded-lg text-white" placeholder="John Doe" /></div>
+                            </div>
+                            <div>
+                                <label className="block mb-2 text-sm font-medium text-blue-200" htmlFor="email">Email Address</label>
+                                <div className="relative"><Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" /><input id="email" name="email" type="email" required value={email} onChange={handleChange} className="w-full pl-11 pr-4 py-3 bg-white/10 border border-gray-500/30 rounded-lg text-white" placeholder="name@company.com" /></div>
+                            </div>
+                            <div>
+                                <label className="block mb-2 text-sm font-medium text-blue-200" htmlFor="password">Password</label>
+                                <div className="relative"><Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" /><input id="password" name="password" type={showPassword ? "text" : "password"} required value={password} onChange={handleChange} className="w-full pl-11 pr-12 py-3 bg-white/10 border border-gray-500/30 rounded-lg text-white" placeholder="••••••••" /><button type="button" className="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400 hover:text-white" onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}</button></div>
+                                <PasswordStrengthIndicator password={password} />
+                            </div>
+                            <button type="submit" disabled={loading} className="w-full py-3 rounded-lg font-semibold text-white bg-gradient-to-r from-blue-600 to-purple-600 disabled:opacity-50"><div className="flex items-center justify-center gap-2">{loading ? <Loader className="animate-spin h-5 w-5" /> : <><UserPlus className="h-5 w-5" /> Create Account</>}</div></button>
+                        </form>
+                    </div>
+                    <div className="p-6 bg-white/5 border-t border-white/10 text-center text-sm"><p className="text-blue-200">Already have an account? <Link to="/login" className="text-blue-300 hover:underline font-medium">Sign In</Link></p></div>
+                </motion.div>
+            ) : (
+                <motion.div key="otp" variants={otpVariants} initial="hidden" animate="visible" exit="exit">
+                    {/* The previously redesigned OTP component fits here perfectly */}
+                    <OTPVerification email={flowState.email} onBack={() => setFlowState({ step: 'signup', email: '' })} />
+                </motion.div>
             )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-4 rounded-xl font-medium hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-lg flex items-center justify-center"
-            >
-              {loading ? (
-                <>
-                  <Loader className="animate-spin h-5 w-5 mr-2" />
-                  Creating Account...
-                </>
-              ) : (
-                'Create Account'
-              )}
-            </button>
-          </form>
-
-          <div className="mt-6 text-center">
-            <p className="text-gray-400 text-sm">
-              Already have an account?{' '}
-              <a href="/login" className="text-blue-400 hover:text-blue-300 font-medium">
-                Sign in here
-              </a>
-            </p>
-          </div>
-        </div>
+        </AnimatePresence>
       </div>
     </div>
   );

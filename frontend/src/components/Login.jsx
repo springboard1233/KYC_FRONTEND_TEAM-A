@@ -1,198 +1,159 @@
-// Enhanced Login.jsx with Dark Mode Split-Screen UI
+// CHANGELOG: Refactored with a 'useLogin' hook for cleaner logic and enhanced UI with dynamic background and refined animations.
+import React, { useState, useCallback } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { authService } from '../utils/auth';
+import { Shield, Mail, Lock, AlertCircle, LogIn, Loader } from 'lucide-react';
 
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Mail, Lock, Shield, Loader } from 'lucide-react';
-import { authService } from '../utils/auth'; // Assuming authService path
+// --- CUSTOM HOOK FOR LOGIN LOGIC ---
 
-const Login = () => {
-    const [formData, setFormData] = useState({ email: '', password: '' });
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
-    const [showPassword, setShowPassword] = useState(false);
-    const navigate = useNavigate();
+const useLogin = ({ onSuccess }) => {
+  const [credentials, setCredentials] = useState({ email: '', password: '' });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-    const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-        if (error) setError('');
-    };
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setCredentials(prev => ({ ...prev, [name]: value }));
+  };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        setError('');
+  const handleSubmit = useCallback(async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
 
-        try {
-            await authService.login(formData);
-            navigate('/dashboard');
-        } catch (err) {
-            // Provide more user-friendly error messages
-            if (err.message.includes('401') || err.message.toLowerCase().includes('invalid credentials')) {
-                setError('Invalid email or password. Please try again.');
-            } else if (err.message.includes('network')) {
-                setError('Network error. Please check your connection and try again.');
-            } else {
-                setError('An unexpected error occurred. Please try again later.');
-            }
-            console.error("Login error:", err);
-        } finally {
-            setLoading(false);
-        }
-    };
+    try {
+      const result = await authService.login(credentials.email, credentials.password);
+      if (result.success) {
+        onSuccess();
+      } else {
+        setError(result.error || 'Login failed. Please check your credentials.');
+      }
+    } catch (err) {
+      setError('An unexpected error occurred. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  }, [credentials, onSuccess]);
 
-    return (
-        <div className="min-h-screen flex bg-gray-900 text-white">
-            {/* --- Branding Section (Left Side) --- */}
-            <div className="hidden md:flex md:w-1/2 lg:w-3/5 bg-gradient-to-br from-blue-700 via-purple-700 to-gray-900 items-center justify-center p-12 relative overflow-hidden">
-                <div className="relative z-10 max-w-lg space-y-6">
-                    <div className="flex items-center space-x-3">
-                        <div className="bg-white p-3 rounded-lg shadow-lg">
-                            <Shield className="h-6 w-6 text-blue-600" />
-                        </div>
-                        <span className="text-3xl font-bold text-white tracking-tight">VeriSecure AI</span>
-                    </div>
-                    <h1 className="text-4xl lg:text-5xl font-bold text-white leading-tight">
-                        Secure Access to Your Verification Hub
-                    </h1>
-                    <p className="text-lg text-blue-100 opacity-90">
-                        Log in to manage KYC processes, review AI-powered verifications, and prevent fraud in real-time.
-                    </p>
-                    <div className="border-t border-blue-400 border-opacity-30 pt-6 space-y-4 text-blue-100">
-                        <div className="flex items-start space-x-3">
-                            <CheckIcon />
-                            <span>End-to-End Encryption</span>
-                        </div>
-                        <div className="flex items-start space-x-3">
-                            <CheckIcon />
-                            <span>Real-time Fraud Monitoring</span>
-                        </div>
-                        <div className="flex items-start space-x-3">
-                            <CheckIcon />
-                            <span>Global Compliance Standards</span>
-                        </div>
-                    </div>
-                </div>
-                {/* Background decorative elements */}
-                <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:32px_32px]"></div>
-            </div>
-
-            {/* --- Form Section (Right Side) --- */}
-            <div className="w-full md:w-1/2 lg:w-2/5 flex items-center justify-center p-6 sm:p-12 bg-gray-900">
-                <div className="max-w-md w-full space-y-8">
-                    {/* Header */}
-                    <div>
-                        <h2 className="text-3xl font-bold text-white tracking-tight">Welcome Back</h2>
-                        <p className="mt-2 text-gray-400">
-                            Don't have an account?{' '}
-                            <Link to="/signup" className="font-medium text-blue-400 hover:text-blue-300 transition-colors duration-200">
-                                Sign up here
-                            </Link>
-                        </p>
-                    </div>
-
-                    {/* Login Form */}
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        {/* Email Input */}
-                        <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-1">
-                                Email Address
-                            </label>
-                            <div className="relative">
-                                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                                    <Mail className="h-5 w-5" />
-                                </span>
-                                <input
-                                    id="email"
-                                    type="email"
-                                    name="email"
-                                    value={formData.email}
-                                    onChange={handleChange}
-                                    className="w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200"
-                                    placeholder="you@company.com"
-                                    required
-                                    disabled={loading}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Password Input */}
-                        <div>
-                            <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-1">
-                                Password
-                            </label>
-                            <div className="relative">
-                                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                                    <Lock className="h-5 w-5" />
-                                </span>
-                                <input
-                                    id="password"
-                                    type={showPassword ? "text" : "password"}
-                                    name="password"
-                                    value={formData.password}
-                                    onChange={handleChange}
-                                    className="w-full pl-10 pr-12 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200"
-                                    placeholder="Enter your password"
-                                    required
-                                    disabled={loading}
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-200 transition-colors duration-200"
-                                    aria-label={showPassword ? "Hide password" : "Show password"}
-                                >
-                                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Error Message */}
-                        {error && (
-                            <div className="bg-red-900 border border-red-700 rounded-lg p-3 text-center">
-                                <p className="text-red-200 text-sm font-medium">{error}</p>
-                            </div>
-                        )}
-
-                        {/* Submit Button */}
-                        <div>
-                            <button
-                                type="submit"
-                                disabled={loading}
-                                className={`w-full flex justify-center items-center py-3 px-4 rounded-lg font-semibold transition-all duration-300 ease-in-out ${
-                                    loading 
-                                    ? 'bg-gray-600 cursor-not-allowed' 
-                                    : 'bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900'
-                                }`}
-                            >
-                                {loading ? (
-                                    <>
-                                        <Loader className="animate-spin h-5 w-5 mr-2" />
-                                        Signing In...
-                                    </>
-                                ) : (
-                                    'Sign In'
-                                )}
-                            </button>
-                        </div>
-                    </form>
-
-                    {/* Test Credentials Info Box */}
-                    <div className="mt-4 p-4 bg-yellow-900 border border-yellow-700 rounded-lg text-center">
-                        <p className="text-yellow-200 text-sm">
-                            <span className="font-bold">Note:</span> If you don't have an account, please Sign Up first.
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
+  return { ...credentials, error, loading, handleChange, handleSubmit };
 };
 
-// Custom Check Icon for feature list
-const CheckIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6 text-green-400 flex-shrink-0">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-);
+// --- ANIMATION VARIANTS ---
+
+const containerVariants = {
+  hidden: { opacity: 0, scale: 0.95 },
+  visible: { 
+    opacity: 1, 
+    scale: 1,
+    transition: { 
+      duration: 0.5, 
+      ease: [0.4, 0, 0.2, 1],
+      staggerChildren: 0.1 
+    } 
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100 } },
+};
+
+// --- MAIN LOGIN COMPONENT ---
+
+const Login = () => {
+  const navigate = useNavigate();
+  const { email, password, error, loading, handleChange, handleSubmit } = useLogin({
+    onSuccess: () => navigate('/dashboard'),
+  });
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-900 p-4 overflow-hidden relative">
+      {/* Animated background shapes */}
+      <div className="absolute top-0 left-0 w-full h-full z-0">
+          <motion.div 
+            className="absolute top-[10%] left-[10%] w-72 h-72 bg-blue-600/30 rounded-full filter blur-3xl"
+            animate={{ x: [0, 50, 0], y: [0, -50, 0] }}
+            transition={{ duration: 20, repeat: Infinity, repeatType: 'reverse' }}
+          />
+          <motion.div 
+            className="absolute bottom-[10%] right-[10%] w-72 h-72 bg-purple-600/30 rounded-full filter blur-3xl"
+            animate={{ x: [0, -50, 0], y: [0, 50, 0] }}
+            transition={{ duration: 25, repeat: Infinity, repeatType: 'reverse', delay: 5 }}
+          />
+      </div>
+
+      <motion.div 
+        className="w-full max-w-md z-10"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        <div className="bg-white/5 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/10 overflow-hidden">
+          <div className="p-8">
+            <motion.div variants={itemVariants} className="text-center mb-6">
+              <div className="inline-block p-4 bg-blue-600/20 rounded-full mb-3">
+                <Shield className="w-8 h-8 text-blue-300"/>
+              </div>
+              <h1 className="text-3xl font-bold text-white">AI-KYC System Login</h1>
+              <p className="text-blue-200/80 mt-1">Welcome back, please sign in.</p>
+            </motion.div>
+
+            {error && (
+              <motion.div 
+                className="mb-4 p-3 bg-red-500/20 border border-red-500/30 rounded-lg flex items-center text-red-200"
+                initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+              >
+                <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0" />
+                <span className="text-sm">{error}</span>
+              </motion.div>
+            )}
+
+            <form className="space-y-6" onSubmit={handleSubmit}>
+              <motion.div variants={itemVariants}>
+                <label className="block mb-2 text-sm font-medium text-blue-200" htmlFor="email">Email Address</label>
+                <div className="relative">
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <input id="email" name="email" type="email" required value={email} onChange={handleChange}
+                    className="w-full pl-11 pr-4 py-3 bg-white/10 border border-gray-500/30 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white placeholder-gray-400 transition"
+                    placeholder="name@company.com" />
+                </div>
+              </motion.div>
+              <motion.div variants={itemVariants}>
+                <label className="block mb-2 text-sm font-medium text-blue-200" htmlFor="password">Password</label>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <input id="password" name="password" type="password" required value={password} onChange={handleChange}
+                    className="w-full pl-11 pr-4 py-3 bg-white/10 border border-gray-500/30 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white placeholder-gray-400 transition"
+                    placeholder="••••••••" />
+                </div>
+              </motion.div>
+              <motion.button type="submit" disabled={loading} variants={itemVariants}
+                className="w-full py-3 px-4 rounded-lg font-semibold text-white bg-gradient-to-r from-blue-600 to-purple-600 disabled:opacity-50 focus:outline-none focus:ring-4 focus:ring-blue-500/50"
+                whileHover={{ scale: 1.03, transition: { type: 'spring', stiffness: 300 } }}
+                whileTap={{ scale: 0.98 }}
+              >
+                {loading ? <Loader className="animate-spin h-5 w-5 mx-auto" /> : (
+                  <div className="flex items-center justify-center gap-2">
+                    <LogIn className="h-5 w-5" /> Sign In
+                  </div>
+                )}
+              </motion.button>
+            </form>
+          </div>
+          <motion.div variants={itemVariants} className="p-6 bg-white/5 border-t border-white/10 text-center">
+            <p className="text-blue-200 text-sm">
+              Don't have an account yet?{" "}
+              <Link to="/signup" className="text-blue-300 hover:underline font-medium">
+                Sign up
+              </Link>
+            </p>
+          </motion.div>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
 
 export default Login;
+

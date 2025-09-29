@@ -1,285 +1,178 @@
-import React, { useState } from 'react'
-import { Upload, FileText, AlertCircle, CheckCircle, Camera, Loader, User } from 'lucide-react'
+// CHANGELOG: Redesigned with a dark theme, an interactive drag-and-drop file zone, and an animated multi-step progress display.
+import React, { useEffect } from 'react';
+import { useState, useCallback, memo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { UploadCloud, FileText, X, Brain, Shield, UserCheck, Send, Loader, CheckCircle } from 'lucide-react';
+import { ocrService } from '../utils/ocrService';
 
+// --- REUSABLE SUB-COMPONENTS ---
 
-import { ocrService } from '../utils/ocrService'
+const FileDropzone = memo(({ selectedFile, onFileChange, onFileRemove, error }) => {
+  const [isDragging, setIsDragging] = useState(false);
 
-const DocumentUpload = ({ onExtractionComplete }) => {
-  const [selectedFile, setSelectedFile] = useState(null)
-  const [documentType, setDocumentType] = useState('aadhaar')
-  const [userEnteredName, setUserEnteredName] = useState('')
-  const [autoSave, setAutoSave] = useState(true)
-  const [extracting, setExtracting] = useState(false)
-  const [error, setError] = useState('')
-  const [dragActive, setDragActive] = useState(false)
-
-  const handleFileSelect = (file) => {
-    try {
-      ocrService.validateFile(file)
-      setSelectedFile(file)
-      setError('')
-    } catch (err) {
-      setError(err.message)
-      setSelectedFile(null)
-    }
-  }
-
+  const handleDragEnter = (e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); };
+  const handleDragLeave = (e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); };
+  const handleDragOver = (e) => { e.preventDefault(); e.stopPropagation(); };
   const handleDrop = (e) => {
-    e.preventDefault()
-    setDragActive(false)
-    const files = e.dataTransfer.files
-    if (files && files[0]) {
-      handleFileSelect(files[0])
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      onFileChange({ target: { files: e.dataTransfer.files } });
+      e.dataTransfer.clearData();
     }
-  }
-
-  const handleDragOver = (e) => {
-    e.preventDefault()
-    setDragActive(true)
-  }
-
-  const handleDragLeave = (e) => {
-    e.preventDefault()
-    setDragActive(false)
-  }
-
-  const handleFileInput = (e) => {
-    const file = e.target.files[0]
-    if (file) {
-      handleFileSelect(file)
-    }
-  }
-
-  const handleExtract = async () => {
-    if (!selectedFile) {
-      setError('Please select a file first')
-      return
-    }
-
-    if (!userEnteredName.trim()) {
-      setError('Please enter your name for AI verification')
-      return
-    }
-
-    setExtracting(true)
-    setError('')
-
-    try {
-      const result = await ocrService.extractDocument(
-        selectedFile, 
-        documentType, 
-        userEnteredName.trim(),
-        autoSave
-      )
-
-      if (onExtractionComplete) {
-        onExtractionComplete(result)
-      }
-
-      // Reset form
-      setSelectedFile(null)
-      setUserEnteredName('')
-      setDocumentType('aadhaar')
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setExtracting(false)
-    }
-  }
+  };
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Upload Section */}
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Document Upload</h3>
-            
-            {/* File Upload Area */}
-            <div
-              className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
-                dragActive
-                  ? 'border-blue-500 bg-blue-50'
-                  : selectedFile
-                  ? 'border-green-500 bg-green-50'
-                  : 'border-gray-300 hover:border-gray-400'
-              }`}
-              onDrop={handleDrop}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
+    <div
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+      className={`relative p-6 border-2 border-dashed rounded-xl transition-colors duration-300
+        ${error ? 'border-red-500/50' : 'border-gray-600/80'}
+        ${isDragging ? 'bg-blue-500/20 border-blue-400' : 'bg-gray-900/40'}`
+      }
+    >
+      <input
+        type="file"
+        id="file-upload"
+        accept=".pdf,.png,.jpg,.jpeg"
+        onChange={onFileChange}
+        className="absolute w-0 h-0 opacity-0"
+      />
+      {selectedFile ? (
+        <div className="text-center">
+            <FileText className="h-12 w-12 text-blue-400 mx-auto mb-2" />
+            <p className="font-semibold text-white truncate">{selectedFile.name}</p>
+            <p className="text-xs text-gray-400">{(selectedFile.size / 1024).toFixed(1)} KB</p>
+            <button
+                onClick={onFileRemove}
+                className="mt-4 text-sm text-red-400 hover:text-red-300 font-semibold flex items-center justify-center gap-1 mx-auto"
             >
-              <input
-                type="file"
-                onChange={handleFileInput}
-                accept=".png,.jpg,.jpeg,.pdf"
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                disabled={extracting}
-              />
-
-              {selectedFile ? (
-                <div className="space-y-3">
-                  <CheckCircle className="h-12 w-12 text-green-500 mx-auto" />
-                  <div>
-                    <p className="font-medium text-gray-900">File Selected</p>
-                    <p className="text-sm text-gray-600">{selectedFile.name}</p>
-                    <p className="text-xs text-gray-500">
-                      {ocrService.formatFileSize(selectedFile.size)}
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <Upload className="h-12 w-12 text-gray-400 mx-auto" />
-                  <div>
-                    <p className="text-lg font-medium text-gray-900">
-                      Drop your document here
-                    </p>
-                    <p className="text-sm text-gray-600">or click to browse files</p>
-                    <p className="text-xs text-gray-500 mt-2">
-                      Supports PNG, JPG, PDF (max 16MB)
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {error && (
-              <div className="mt-4 flex items-center space-x-2 text-red-600 bg-red-50 p-3 rounded-md">
-                <AlertCircle className="h-5 w-5" />
-                <span className="text-sm">{error}</span>
-              </div>
-            )}
-          </div>
-
-          {/* Configuration Section */}
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Document Configuration</h3>
-            
-            <div className="space-y-4">
-              {/* Document Type */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Document Type
-                </label>
-                <select
-                  value={documentType}
-                  onChange={(e) => setDocumentType(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
-                  disabled={extracting}
-                >
-                  {ocrService.getSupportedTypes().map((type) => (
-                    <option key={type.value} value={type.value}>
-                      {type.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* User Name Input */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <User className="h-4 w-4 inline mr-1" />
-                  Your Name (for AI Verification)
-                </label>
-                <input
-                  type="text"
-                  value={userEnteredName}
-                  onChange={(e) => setUserEnteredName(e.target.value)}
-                  placeholder="Enter your full name as it appears on the document"
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
-                  disabled={extracting}
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  🤖 AI will compare this with extracted document name for verification
-                </p>
-              </div>
-
-              {/* Auto Save Option */}
-              <div>
-                <label className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={autoSave}
-                    onChange={(e) => setAutoSave(e.target.checked)}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    disabled={extracting}
-                  />
-                  <span className="text-sm text-gray-700">Auto-save results</span>
-                </label>
-              </div>
-
-              {/* Extract Button */}
-              <button
-                onClick={handleExtract}
-                disabled={!selectedFile || !userEnteredName.trim() || extracting}
-                className={`w-full flex items-center justify-center space-x-2 py-3 px-4 rounded-md font-medium transition-colors ${
-                  selectedFile && userEnteredName.trim() && !extracting
-                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                }`}
-              >
-                {extracting ? (
-                  <>
-                    <Loader className="h-5 w-5 animate-spin" />
-                    <span>Processing with AI...</span>
-                  </>
-                ) : (
-                  <>
-                    <Camera className="h-5 w-5" />
-                    <span>Extract with AI Analysis</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
+                <X className="h-4 w-4" /> Remove File
+            </button>
         </div>
-
-        {/* AI Features Info */}
-        <div className="mt-8 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6">
-          <h4 className="text-lg font-semibold text-gray-900 mb-3">🤖 AI-Powered Features</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-            <div className="flex items-start space-x-2">
-              <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-              <div>
-                <p className="font-medium text-gray-900">Advanced Name Matching</p>
-                <p className="text-gray-600">Advanced fuzzy matching algorithm compares your entered name with extracted document name using multiple similarity metrics.</p>
-              </div>
-            </div>
-            <div className="flex items-start space-x-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
-              <div>
-                <p className="font-medium text-gray-900">Document Authenticity</p>
-                <p className="text-gray-600">Detects tampering, manipulation, and authenticity issues using advanced image processing and AI techniques.</p>
-              </div>
-            </div>
-            <div className="flex items-start space-x-2">
-              <div className="w-2 h-2 bg-purple-500 rounded-full mt-2"></div>
-              <div>
-                <p className="font-medium text-gray-900">Fraud Detection</p>
-                <p className="text-gray-600">Comprehensive risk scoring based on pattern analysis, duplicate detection, and ML-powered fraud indicators.</p>
-              </div>
-            </div>
-            <div className="flex items-start space-x-2">
-              <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2"></div>
-              <div>
-                <p className="font-medium text-gray-900">Smart Validation</p>
-                <p className="text-gray-600">Automated validation with confidence scoring and intelligent decision recommendations.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Usage Tips */}
-        <div className="mt-6 bg-gray-50 rounded-lg p-4">
-          <p className="text-sm text-gray-600">
-            <strong>Tip:</strong> For best results, ensure the document is well-lit,
-            clearly visible, and the text is not blurry.
-            {autoSave && ' The extracted data will be automatically saved to your records.'}
-          </p>
-        </div>
-      </div>
+      ) : (
+        <label htmlFor="file-upload" className="text-center cursor-pointer flex flex-col items-center">
+          <UploadCloud className={`h-12 w-12 mb-2 transition-transform duration-300 ${isDragging ? 'scale-110 text-blue-300' : 'text-gray-500'}`} />
+          <p className="font-semibold text-white">Click to browse or drag & drop</p>
+          <p className="text-sm text-gray-400">PDF, PNG, JPG (max 5MB)</p>
+        </label>
+      )}
     </div>
-  )
-}
+  );
+});
 
-export default DocumentUpload
+const FeatureListItem = memo(({ icon: Icon, title, description }) => (
+    <div className="flex items-start gap-4">
+        <div className="p-2 bg-gray-700/50 rounded-lg mt-1"><Icon className="h-5 w-5 text-purple-300" /></div>
+        <div>
+            <h4 className="font-semibold text-white">{title}</h4>
+            <p className="text-sm text-gray-400">{description}</p>
+        </div>
+    </div>
+));
+
+// --- MAIN COMPONENT ---
+
+const DocumentUpload = ({ onUploadSuccess, addNotification }) => {
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [documentType, setDocumentType] = useState('aadhaar');
+  const [userEnteredName, setUserEnteredName] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [uploadStep, setUploadStep] = useState(0);
+  const [error, setError] = useState('');
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setError('File size cannot exceed 5MB.');
+        return;
+      }
+      setSelectedFile(file);
+      setError('');
+    }
+  };
+
+  const handleSubmit = useCallback(async () => {
+    if (!selectedFile) { setError('Please select a file to upload.'); return; }
+    if (!userEnteredName.trim()) { setError('Please enter your full name for verification.'); return; }
+
+    setUploading(true);
+    setError('');
+
+    try {
+      setUploadStep(1); // Uploading
+      // Simulate progress for better UX
+      setTimeout(() => setUploadStep(2), 700); // AI Processing
+      setTimeout(() => setUploadStep(3), 1500); // Finalizing
+
+      const result = await ocrService.extractDocument({
+        file: selectedFile,
+        documentType,
+        userEnteredName: userEnteredName.trim(),
+      });
+      
+      setUploadStep(4); // Done
+      if (result.success && result.extraction_result) {
+        onUploadSuccess(result.extraction_result);
+      } else {
+        throw new Error(result.error || 'Document processing failed.');
+      }
+    } catch (err) {
+      setError(err.message);
+      addNotification(`Upload failed: ${err.message}`, 'error');
+      setUploading(false);
+      setUploadStep(0);
+    }
+  }, [selectedFile, documentType, userEnteredName, onUploadSuccess, addNotification]);
+
+  const uploadSteps = ["", "Uploading...", "AI Processing...", "Finalizing...", "Done!"];
+  
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="bg-gray-800/50 p-6 rounded-xl border border-gray-700 space-y-4">
+            <h2 className="text-2xl font-bold text-white">Upload Your Document</h2>
+            
+            <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Document Type</label>
+                <select value={documentType} onChange={e => setDocumentType(e.target.value)} className="w-full bg-gray-700/80 border border-gray-600 rounded-lg px-3 py-2 text-white">
+                    <option value="aadhaar">Aadhaar Card</option>
+                    <option value="pan">PAN Card</option>
+                </select>
+            </div>
+            
+            <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Your Full Name</label>
+                <input type="text" value={userEnteredName} onChange={e => setUserEnteredName(e.target.value)} placeholder="Enter name as it appears on the document" className="w-full bg-gray-700/80 border border-gray-600 rounded-lg px-3 py-2 text-white"/>
+            </div>
+
+            <FileDropzone selectedFile={selectedFile} onFileChange={handleFileChange} onFileRemove={() => setSelectedFile(null)} error={!!error} />
+
+            <AnimatePresence>
+                {error && <motion.p initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="text-red-400 text-sm">{error}</motion.p>}
+            </AnimatePresence>
+            
+            <button onClick={handleSubmit} disabled={uploading} className="w-full py-3 px-4 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
+                {uploading ? <Loader className="animate-spin h-5 w-5" /> : <Send className="h-5 w-5" />}
+                {uploading ? uploadSteps[uploadStep] : 'Submit for Verification'}
+            </button>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="bg-gray-800/20 p-6 rounded-xl border border-dashed border-gray-700/50 space-y-4">
+            <div className="flex items-center gap-3">
+                <Brain className="h-6 w-6 text-purple-300" />
+                <h3 className="text-xl font-bold text-white">Powered by AI</h3>
+            </div>
+            <FeatureListItem icon={UserCheck} title="Name Verification" description="AI cross-references the name you provide with the name extracted from the document." />
+            <FeatureListItem icon={Shield} title="Fraud Detection" description="Advanced algorithms scan for signs of digital tampering, forgery, and inconsistencies."/>
+            <FeatureListItem icon={CheckCircle} title="Data Extraction" description="Key information like ID numbers and dates are automatically extracted and validated." />
+        </motion.div>
+    </div>
+  );
+};
+
+export default DocumentUpload;
+

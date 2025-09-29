@@ -1,123 +1,122 @@
-import axios from 'axios'
 
-const API_BASE_URL = 'http://localhost:5000'
+import api from './api';
 
-// Create axios instance with timeout and retry configuration
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 5000, // 5 second timeout
-  headers: {
-    'Content-Type': 'application/json',
-  }
-})
+// Store keys
+const TOKEN_KEY = 'kyc_token';
+const USER_KEY = 'kyc_user';
 
-// Request interceptor
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('access_token')
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
-    
-    // Add request ID for debugging
-    config.metadata = { startTime: new Date() }
-    console.log(`API Request [${config.method.toUpperCase()}] ${config.url}`)
-    
-    return config
-  },
-  (error) => {
-    console.error('Request Error:', error)
-    return Promise.reject(error)
-  }
-)
-
-// Response interceptor with better error handling
-api.interceptors.response.use(
-  (response) => {
-    const duration = new Date() - response.config.metadata.startTime
-    console.log(`API Response [${response.status}] ${response.config.url} (${duration}ms)`)
-    return response
-  },
-  (error) => {
-    const duration = error.config?.metadata ? new Date() - error.config.metadata.startTime : 0
-    console.error(`API Error [${error.response?.status || 'TIMEOUT'}] ${error.config?.url} (${duration}ms):`, {
-      status: error.response?.status,
-      data: error.response?.data,
-      message: error.message
-    })
-    
-    // Handle authentication errors without redirect loops
-    if (error.response?.status === 401 || error.response?.status === 422) {
-      console.log('Authentication failed, clearing tokens')
-      localStorage.removeItem('access_token')
-      localStorage.removeItem('user')
-      
-      // Only redirect if not already on login/signup page
-      const currentPath = window.location.pathname
-      if (currentPath !== '/login' && currentPath !== '/signup' && currentPath !== '/') {
-        console.log('Redirecting to login due to auth error')
-        window.location.href = '/login'
-      }
-    }
-    
-    return Promise.reject(error)
-  }
-)
-
+// Authentication service
 export const authService = {
-  signup: async (userData) => {
+  // Login function
+  async login(email, password) {
     try {
-      const response = await api.post('/api/signup', userData)
+      console.log('Attempting login with:', { email });
+      const response = await api.post('/login', { email, password });
       
-      if (response.data.access_token) {
-        localStorage.setItem('access_token', response.data.access_token)
-        localStorage.setItem('user', JSON.stringify(response.data.user))
+      if (response.data && response.data.access_token) {
+        localStorage.setItem(TOKEN_KEY, response.data.access_token);
+        localStorage.setItem(USER_KEY, JSON.stringify(response.data.user));
+        
+        // Set the Authorization header for future requests
+        api.defaults.headers.common['Authorization'] = `Bearer ${response.data.access_token}`;
+        
+        console.log('Login successful, token stored');
+        return { success: true, user: response.data.user };
       }
-      
-      return response.data
+      return { success: false, error: 'Invalid credentials' };
     } catch (error) {
-      const message = error.response?.data?.error || 'Signup failed'
-      throw new Error(message)
+      console.error('Login error:', error);
+      return { 
+        success: false, 
+        error: error.response?.data?.error || 'Login failed. Please try again.' 
+      };
     }
   },
 
-  login: async (credentials) => {
+  // Logout function
+  logout() {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+    // Remove Authorization header
+    delete api.defaults.headers.common['Authorization'];
+  },
+
+  // Check if user is authenticated
+  isAuthenticated() {
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!token) return false;
+    
+    // Set the Authorization header if token exists
+    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    return true;
+  },
+
+  // Get stored token
+  getToken() {
+    return localStorage.getItem(TOKEN_KEY);
+  },
+
+  // Get stored user
+  getStoredUser() {
+    const userJson = localStorage.getItem(USER_KEY);
+    return userJson ? JSON.parse(userJson) : null;
+  },
+  
+  // Refresh user data from server
+  async refreshUserData() {
+    if (!this.isAuthenticated()) return null;
+    
     try {
-      const response = await api.post('/api/login', credentials)
-      
-      if (response.data.access_token) {
-        localStorage.setItem('access_token', response.data.access_token)
-        localStorage.setItem('user', JSON.stringify(response.data.user))
+      const response = await api.get('/me');
+      if (response.data) {
+        localStorage.setItem(USER_KEY, JSON.stringify(response.data));
+        return response.data;
       }
-      
-      return response.data
+      return null;
     } catch (error) {
-      const message = error.response?.data?.error || 'Login failed'
-      throw new Error(message)
+      console.error('Error refreshing user data:', error);
+      // If unauthorized, logout
+      if (error.response?.status === 401) {
+        this.logout();
+      }
+      return null;
     }
   },
 
-  logout: async () => {
-    localStorage.removeItem('access_token')
-    localStorage.removeItem('user')
-  },
-
-  getCurrentUser: async () => {
+  // Signup function
+  async signup(name, email, password) {
     try {
-      const response = await api.get('/api/me')
-      return response.data.user
+      console.log('Attempting signup with:', { name, email });
+      const response = await api.post('/signup', { name, email, password });
+      // On successful signup, backend now sends a message and email
+      return { success: true, message: response.data.message, email: response.data.email };
     } catch (error) {
-      const message = error.response?.data?.error || 'Failed to get user info'
-      throw new Error(message)
+      console.error('Signup error:', error);
+      return { 
+        success: false, 
+        error: error.response?.data?.error || 'Signup failed. Please try again.' 
+      };
     }
   },
 
-  isAuthenticated: () => {
-    return !!localStorage.getItem('access_token')
+  // Verify OTP
+  async verifyOtp(email, otp) {
+    const response = await api.post('/verify-otp', { email, otp });
+    if (response.data && response.data.access_token) {
+      localStorage.setItem(TOKEN_KEY, response.data.access_token);
+      localStorage.setItem(USER_KEY, JSON.stringify(response.data.user));
+      api.defaults.headers.common['Authorization'] = `Bearer ${response.data.access_token}`;
+      return { success: true, user: response.data.user };
+    }
+    throw new Error(response.data.error || 'OTP verification failed');
   },
 
-  getStoredUser: () => {
-    const user = localStorage.getItem('user')
-    return user ? JSON.parse(user) : null
+  // Resend OTP
+  async resendOtp(email) {
+    const response = await api.post('/resend-otp', { email });
+    if (response.status === 200) {
+      return { success: true, message: response.data.message };
+    }
+    throw new Error(response.data.error || 'Failed to resend OTP');
   }
-}
+};
