@@ -8,7 +8,17 @@ import DocumentManipulationDisplay from './DocumentManipulationDisplay';
 
 const ExtractionResults = ({ extractionResult, setCurrentView }) => {
   if (!extractionResult) {
-    return <div className="text-center p-8 text-gray-400">Loading analysis results...</div>;
+    return (
+      <div className="text-center p-8 text-gray-400">
+        <p>No extraction results available. Please upload a document first.</p>
+        <button
+          onClick={() => setCurrentView('upload')}
+          className="mt-4 flex items-center justify-center mx-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+        >
+          <Upload className="h-5 w-5 mr-2" /> Upload Document
+        </button>
+      </div>
+    );
   }
 
   const {
@@ -65,6 +75,7 @@ const ExtractionResults = ({ extractionResult, setCurrentView }) => {
         </motion.div>
       </div>
 
+      {/* AI Name Matching Display */}
       <motion.div variants={itemVariants}>
         <AINameMatchingDisplay 
           nameMatchingResult={fraud_analysis.analysis_details?.name_matching_result}
@@ -73,6 +84,7 @@ const ExtractionResults = ({ extractionResult, setCurrentView }) => {
         />
       </motion.div>
       
+      {/* Document Manipulation Display */}
       <motion.div variants={itemVariants}>
         <DocumentManipulationDisplay manipulationResult={manipulation_result} />
       </motion.div>

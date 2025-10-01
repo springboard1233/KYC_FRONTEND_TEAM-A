@@ -1,117 +1,72 @@
-// CHANGELOG: Replaced linear progress bar with an animated SVG risk gauge for a more impactful and intuitive data visualization.
-import React, { memo, useMemo } from 'react';
+// FILE: frontend/src/components/FraudScoreDisplay.jsx
+import React, { memo } from 'react';
+import { Shield, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { Shield, AlertTriangle } from 'lucide-react';
-
-// --- CONFIGURATION & STYLING ---
-
-const useRiskConfig = (riskCategory) => {
-  return useMemo(() => {
-    switch (riskCategory?.toLowerCase()) {
-      case 'high':
-        return { text: 'High Risk', icon: AlertTriangle, color: 'red', textClass: 'text-red-400', strokeClass: 'stroke-red-500', bg: 'bg-red-500/10' };
-      case 'medium':
-        return { text: 'Medium Risk', icon: AlertTriangle, color: 'yellow', textClass: 'text-yellow-400', strokeClass: 'stroke-yellow-500', bg: 'bg-yellow-500/10' };
-      default:
-        return { text: 'Low Risk', icon: Shield, color: 'green', textClass: 'text-green-400', strokeClass: 'stroke-green-500', bg: 'bg-green-500/10' };
-    }
-  }, [riskCategory]);
-};
-
-// --- REUSABLE SUB-COMPONENTS ---
-
-const RiskGauge = memo(({ score = 0, strokeClass }) => {
-    const size = 180;
-    const strokeWidth = 16;
-    const radius = (size - strokeWidth) / 2;
-    const circumference = Math.PI * radius; // Half circle
-    const progress = Math.max(0, Math.min(100, score));
-    const offset = circumference - (progress / 100) * circumference;
-
-    return (
-        <div className="relative" style={{ width: size, height: size / 2 }}>
-            <svg className="w-full h-full" viewBox={`0 0 ${size} ${size / 2}`}>
-                {/* Background Arc */}
-                <path
-                    d={`M ${strokeWidth/2} ${size/2} A ${radius} ${radius} 0 0 1 ${size - strokeWidth/2} ${size/2}`}
-                    className="stroke-gray-700"
-                    strokeWidth={strokeWidth}
-                    fill="none"
-                    strokeLinecap="round"
-                />
-                {/* Foreground Arc */}
-                <motion.path
-                    d={`M ${strokeWidth/2} ${size/2} A ${radius} ${radius} 0 0 1 ${size - strokeWidth/2} ${size/2}`}
-                    className={strokeClass}
-                    strokeWidth={strokeWidth}
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeDasharray={circumference}
-                    initial={{ strokeDashoffset: circumference }}
-                    animate={{ strokeDashoffset: offset }}
-                    transition={{ duration: 1, ease: [0.4, 0, 0.2, 1] }}
-                />
-            </svg>
-        </div>
-    );
-});
-
-const RiskFactorItem = memo(({ factor }) => (
-    <motion.div 
-        initial={{ opacity: 0, x: -10 }}
-        animate={{ opacity: 1, x: 0 }}
-        className="flex items-start text-sm text-red-300 bg-red-500/10 p-2.5 rounded-md"
-    >
-        <AlertTriangle className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0 text-red-400" />
-        <span>{factor}</span>
-    </motion.div>
-));
-
-// --- MAIN COMPONENT ---
 
 const FraudScoreDisplay = ({ analysis }) => {
-  if (!analysis) return null;
+  const fraudScore = analysis?.fraud_score ?? 0;
+  const riskCategory = analysis?.risk_category || 'Unknown';
+  const confidence = analysis?.confidence_score ?? 0;
 
-  const { fraud_score = 0, risk_category = 'low', risk_factors = [] } = analysis;
-  const config = useRiskConfig(risk_category);
+  let scoreColorClass = 'text-green-400';
+  let scoreBgClass = 'bg-green-500/20';
+  let icon = <CheckCircle2 className="h-5 w-5 text-green-400 mr-3" />;
+
+  if (fraudScore > 60) {
+    scoreColorClass = 'text-red-400';
+    scoreBgClass = 'bg-red-500/20';
+    icon = <AlertTriangle className="h-5 w-5 text-red-400 mr-3" />;
+  } else if (fraudScore > 30) {
+    scoreColorClass = 'text-yellow-400';
+    scoreBgClass = 'bg-yellow-500/20';
+    icon = <AlertTriangle className="h-5 w-5 text-yellow-400 mr-3" />;
+  }
+
+  const gaugeRotation = Math.min(Math.max(fraudScore, 0), 100) * 1.8; // Map 0-100 to 0-180 degrees
 
   return (
     <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="bg-gray-800/50 backdrop-blur-xl rounded-xl shadow-xl p-6 border border-gray-700 h-full flex flex-col"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: 'spring', stiffness: 100 }}
+      className="bg-gray-800/50 backdrop-blur-xl rounded-xl shadow-xl p-6 border border-gray-700 h-full flex flex-col"
     >
-      <h3 className="text-lg font-semibold text-gray-100 flex items-center mb-4">
-        <Shield className={`h-5 w-5 mr-2 ${config.textClass}`} />
+      <h3 className="text-lg font-semibold text-gray-100 mb-4 flex items-center">
+        <Shield className="h-5 w-5 mr-3 text-red-400" />
         Fraud Risk Analysis
       </h3>
-      
-      <div className="flex flex-col items-center justify-center text-center">
-        <RiskGauge score={fraud_score} strokeClass={config.strokeClass} />
-        <p className="text-5xl font-bold text-white -mt-8">{fraud_score}<span className="text-3xl text-gray-400">%</span></p>
-        <div className={`mt-2 flex items-center gap-2 px-3 py-1 rounded-full text-sm font-bold ${config.bg} ${config.textClass}`}>
-            <config.icon className="h-4 w-4" />
-            {config.text}
+      <div className="flex flex-col items-center justify-center flex-grow space-y-4">
+        <div className="relative w-32 h-16 overflow-hidden">
+          {/* Semicircle background */}
+          <div className="absolute top-0 left-0 w-32 h-16 rounded-b-[64px] rounded-t-none bg-gray-700"></div>
+          {/* Animated score arc */}
+          <div 
+            className="absolute origin-bottom-center w-32 h-16 rounded-b-[64px] rounded-t-none bg-gradient-to-r from-green-500 to-red-500 transition-transform duration-1000 ease-out"
+            style={{ transform: `rotate(${gaugeRotation}deg)`, transformOrigin: 'bottom center' }}
+          ></div>
+          {/* Inner circle mask */}
+          <div className="absolute top-2 left-2 w-28 h-14 rounded-b-[56px] rounded-t-none bg-gray-800"></div>
+          {/* Needle - if you want one */}
+          {/* <div 
+            className="absolute bottom-0 left-1/2 w-0.5 h-full bg-white transition-transform duration-1000 ease-out transform -translate-x-1/2"
+            style={{ transform: `translateX(-50%) rotate(${gaugeRotation}deg)`, transformOrigin: 'bottom center' }}
+          ></div> */}
+          {/* Central score display */}
+          <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 text-white text-2xl font-bold">
+            {fraudScore}%
+          </div>
         </div>
-      </div>
 
-      {risk_factors.length > 0 && (
-        <div className="mt-6 pt-4 border-t border-gray-700 flex-grow">
-          <h4 className="text-sm font-medium text-gray-300 mb-2">
-            Key Risk Factors Detected ({risk_factors.length})
-          </h4>
-          <motion.div 
-            className="space-y-2"
-            initial="hidden"
-            animate="visible"
-            transition={{ staggerChildren: 0.1 }}
-          >
-            {risk_factors.map((factor, index) => (
-              <RiskFactorItem key={index} factor={factor} />
-            ))}
-          </motion.div>
+        <div className="flex items-center mt-6">
+          {icon}
+          <p className={`text-xl font-bold ${scoreColorClass}`}>
+            {riskCategory} Risk
+          </p>
         </div>
-      )}
+        <p className="text-sm text-gray-400 mt-2 text-center">
+          Confidence Score: <span className="font-medium text-white">{confidence}%</span>
+        </p>
+      </div>
     </motion.div>
   );
 };
