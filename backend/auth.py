@@ -4,7 +4,6 @@ import jwt
 import datetime
 from bson.objectid import ObjectId
 
-# This function will be called from app.py to get the mongo instance
 def init_auth(mongo_instance, bcrypt_instance, app_instance):
     global mongo, bcrypt, app
     mongo = mongo_instance

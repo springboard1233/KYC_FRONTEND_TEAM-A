@@ -7,7 +7,6 @@ const generateToken =(id)=>{
     return jwt.sign({id},process.env.JWT_SECRET, { expiresIn: '1d',});
 };
 const registerUser = asyncHandler(async (req, res) => {
-    // res.send("Register page")  // /api/users/register
 
     if (!req.body) {
         res.status(400);
@@ -33,19 +32,34 @@ const registerUser = asyncHandler(async (req, res) => {
         password,
     });
     const token = generateToken(user.id);
-    res .cookie('token', token, {
-        path: '/',
-        httpOnly: true,
-        expires: new Date(Date.now() + 86400 * 1000), // 1 day
-        sameSite: 'none',
-        secure: true, // Set to true if using HTTPS
-    });
+    // res .cookie('token', token, {
+    //     path: '/',
+    //     httpOnly: true,
+    //     expires: new Date(Date.now() + 86400 * 1000), // 1 day
+    //     sameSite: 'none',
+    //     secure: true, 
+    // });
 
-    if(user){
-        const {id, name, email,photo, role} = user;
-        // Send the token in the response
-        res.status(201).json({ _id: id, name, email, photo, role, token });
-    }else{
+    // if(user){
+    //     const {id, name, email,photo, role} = user;
+    //     // Send the token in the response
+    //     res.status(201).json({ _id: id, name, email, photo, role, token });
+if (user) {
+        const token = generateToken(user._id);
+
+        // ✅ FIX: Send the response in the same nested format as the login function
+        res.status(201).json({
+            user: {
+                _id: user._id,
+                name: user.name,
+                email: user.email,
+                photo: user.photo,
+                role: user.role,
+            },
+            token,
+        });    
+
+}else{
         res.status(400);
         throw new Error("Invalid User data");   
     }
@@ -79,7 +93,6 @@ const logiUser = asyncHandler(async (req, res) => {
         });
 
         const { _id, name, photo, role } = user;
-        // res.status(200).json({ _id, name, email, photo, role, token });
         res.status(200).json({ user: { _id, name, email, photo, role },token});
     } else {
         res.status(401); 

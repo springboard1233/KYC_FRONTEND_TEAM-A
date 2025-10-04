@@ -2,7 +2,6 @@ const asyncHandler = require("express-async-handler");
 const Admin = require("../models/adminModel");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
-const Submission= require("../models/submissionModel")
 
 const generateToken = (id, role) => {
   return jwt.sign({ id, role }, process.env.JWT_SECRET, { expiresIn: "1d" });
@@ -80,14 +79,4 @@ const loginAdmin = asyncHandler(async (req, res) => {
     throw new Error("Invalid Admin credentials");
   }
 });
-
-const getSubmissions = async (req, res) => {
-  try {
-    const submissions = await Submission.find();
-    res.json(submissions);
-  } catch (error) {
-    res.status(500).json({ message: "Server error while fetching submissions" });
-  }
-};
-
-module.exports = { registerAdmin, loginAdmin, getSubmissions };
+module.exports = { registerAdmin, loginAdmin };

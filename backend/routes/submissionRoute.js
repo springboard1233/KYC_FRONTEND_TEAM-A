@@ -1,25 +1,18 @@
 const express = require('express');
 const router = express.Router();
-const {createSubmission, getMySubmissionStatus, getAllSubmissions, updateSubmissionStatus} = require('../controllers/submissionController');
-
+const multer = require('multer');
+const { getMySubmissionStatus, getAllSubmissions, updateSubmissionStatus } = require('../controllers/submissionController');
+const { runVerificationPipeline } = require('../controllers/pipelineController');
 const { protect, protectAdmin } = require('../middleware/authMiddleware');
 
-// User routes
-router.post('/', protect, createSubmission);
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
+
+router.post('/verify', protect, upload.single('file'), runVerificationPipeline);
 router.get('/status', protect, getMySubmissionStatus);
 
-// Admin routes
+// Admin Routes
 router.get('/', protectAdmin, getAllSubmissions);
 router.patch('/:id', protectAdmin, updateSubmissionStatus);
-
-// GET /api/submissions/my-submissions
-// router.get("/my-submissions", verifyUser, async (req, res) => {
-//   try {
-//     const submissions = await Submission.find({ userId: req.user._id }).sort({ createdAt: -1 });
-//     res.json(submissions);
-//   } catch (err) {
-//     res.status(500).json({ message: "Failed to fetch submissions" });
-//   }
-// });
 
 module.exports = router;

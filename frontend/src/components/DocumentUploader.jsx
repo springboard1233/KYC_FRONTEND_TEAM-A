@@ -1,8 +1,6 @@
 import React, { useCallback, useState, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 
-// Note: Loader is no longer needed here as the parent component handles loading states.
-
 const FILE_CONFIG = {
   'image/jpeg': [],
   'image/png': [],

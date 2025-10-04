@@ -22,3 +22,8 @@ numpy
 # --- AI & Verification ---
 fuzzywuzzy
 python-Levenshtein
+
+fastapi
+uvicorn[standard]
+scikit-learn
+joblib
