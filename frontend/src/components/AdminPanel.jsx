@@ -1,108 +1,109 @@
-// frontend/src/components/AdminPanel.jsx
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Eye, CheckCircle, XCircle, Loader } from 'lucide-react';
+// FILE: frontend/src/components/AdminPanel.jsx
+import React, { useState, memo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Shield, Eye, CheckCircle, XCircle, Loader, Inbox } from 'lucide-react';
 import { adminService } from '../utils/adminService';
 
-const AdminPanel = ({ adminQueue = [], loading, onRefreshQueue }) => {
-  const [selectedRecord, setSelectedRecord] = useState(null);
-  const [actionLoading, setActionLoading] = useState(false);
-  const [notification, setNotification] = useState('');
+// Reusable component for a table row representing a pending record
+const RecordRow = memo(({ record, onViewRecord, onAction }) => {
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  useEffect(() => {
-    if (notification) {
-      const timer = setTimeout(() => setNotification(''), 4000);
-      return () => clearTimeout(timer);
-    }
-  }, [notification]);
+  const handleActionClick = async (action) => {
+    setIsProcessing(true);
+    await onAction(record._id, action);
+    // The parent component will handle UI updates, so we don't need to set isProcessing back to false.
+  };
 
+  const riskColor = record.risk_category === 'high' ? 'text-red-400'
+                  : record.risk_category === 'medium' ? 'text-yellow-400'
+                  : 'text-gray-400';
+
+  return (
+    <motion.tr
+      layout
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0, x: -50, transition: { duration: 0.3 } }}
+      className="border-b border-gray-700/50 hover:bg-gray-700/20"
+    >
+      <td className="p-4 align-middle">
+        <div className="font-medium text-white">{record.filename}</div>
+        <div className="text-sm text-gray-400 capitalize">{record.document_type}</div>
+      </td>
+      <td className="p-4 align-middle text-sm text-gray-300">{new Date(record.created_at).toLocaleString()}</td>
+      <td className="p-4 align-middle font-semibold">
+        <span className={riskColor}>{record.risk_category?.toUpperCase() || 'N/A'} ({record.fraud_score?.toFixed(0) || 0}%)</span>
+      </td>
+      <td className="p-4 align-middle text-right">
+        <div className="flex justify-end items-center gap-2">
+          {isProcessing ? (
+            <Loader className="h-5 w-5 animate-spin text-blue-400" />
+          ) : (
+            <>
+              <button onClick={() => onViewRecord(record)} className="p-2 text-gray-300 hover:bg-gray-600/50 hover:text-white rounded-md transition-colors" title="View Details"><Eye className="h-5 w-5" /></button>
+              <button onClick={() => handleActionClick('approve')} className="p-2 text-green-400 hover:bg-green-500/10 rounded-md transition-colors" title="Approve"><CheckCircle className="h-5 w-5" /></button>
+              <button onClick={() => handleActionClick('reject')} className="p-2 text-red-400 hover:bg-red-500/10 rounded-md transition-colors" title="Reject"><XCircle className="h-5 w-5" /></button>
+            </>
+          )}
+        </div>
+      </td>
+    </motion.tr>
+  );
+});
+
+
+const AdminPanel = ({ adminQueue = [], loading, onRefreshQueue, onViewRecord, addNotification }) => {
+  
   const handleAction = async (recordId, action) => {
-    setActionLoading(true);
     try {
-      await adminService.updateRecordStatus(recordId, action);
-      setNotification(`Record ${action === 'approve' ? 'approved' : 'rejected'} successfully.`);
-      onRefreshQueue && onRefreshQueue();
-      setSelectedRecord(null);
+      await adminService.updateRecordStatus(recordId, action, 'Quick decision from panel.');
+      addNotification(`Record successfully ${action === 'approve' ? 'approved' : 'rejected'}.`, 'success');
+      onRefreshQueue(); // Tell the parent to re-fetch the queue
     } catch (err) {
-      setNotification(`Failed to ${action} record: ${err.message}`);
-    } finally {
-      setActionLoading(false);
+      addNotification(`Failed to ${action} record: ${err.message}`, 'error');
     }
   };
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-gray-100 mb-4">Admin Fraud Review Panel</h2>
-      {notification && (
-        <div className="mb-4 text-center text-blue-400 bg-blue-900/30 rounded-lg py-2">{notification}</div>
-      )}
-      {loading ? (
-        <div className="flex justify-center items-center h-40">
-          <Loader className="animate-spin h-8 w-8 text-blue-400" />
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {adminQueue.length === 0 ? (
-            <div className="text-center text-gray-400">No pending records for review.</div>
-          ) : (
-            adminQueue.map((record) => (
-              <div key={record._id} className="bg-gray-800/50 rounded-xl p-6 border border-gray-700 shadow-xl">
-                <div className="flex items-center justify-between mb-2">
-                  <div>
-                    <span className="font-semibold text-gray-200">{record.document_type} - {record.filename}</span>
-                    <span className="ml-4 text-sm text-gray-400">Status: {record.status}</span>
-                  </div>
-                  <div className="flex space-x-2">
-                    <button
-                      className="bg-blue-700 hover:bg-blue-800 text-white px-3 py-1 rounded flex items-center"
-                      onClick={() => setSelectedRecord(record)}
-                    >
-                      <Eye className="h-4 w-4 mr-1" /> View
-                    </button>
-                    <button
-                      className="bg-green-700 hover:bg-green-800 text-white px-3 py-1 rounded flex items-center"
-                      onClick={() => handleAction(record._id, 'approve')}
-                      disabled={actionLoading}
-                    >
-                      <CheckCircle className="h-4 w-4 mr-1" /> Approve
-                    </button>
-                    <button
-                      className="bg-red-700 hover:bg-red-800 text-white px-3 py-1 rounded flex items-center"
-                      onClick={() => handleAction(record._id, 'reject')}
-                      disabled={actionLoading}
-                    >
-                      <XCircle className="h-4 w-4 mr-1" /> Reject
-                    </button>
-                  </div>
-                </div>
-                {selectedRecord && selectedRecord._id === record._id && (
-                  <div className="mt-4 bg-gray-900/60 rounded-lg p-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <h4 className="font-semibold text-gray-200 mb-2">Extracted Fields</h4>
-                        <div className="space-y-1 text-gray-400">
-                          {Object.entries(record.extracted_fields).map(([key, value]) => (
-                            <div key={key}><strong>{key.replace(/_/g, ' ')}:</strong> {value}</div>
-                          ))}
-                        </div>
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-gray-200 mb-2">Fraud Analysis</h4>
-                        <div className="space-y-1 text-gray-400">
-                          <div><strong>Fraud Score:</strong> {record.fraud_score}%</div>
-                          <div><strong>Risk Category:</strong> {record.risk_category}</div>
-                          {record.risk_factors?.length > 0 && <div><strong>Factors:</strong> {record.risk_factors.join(', ')}</div>}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))
-          )}
-        </div>
-      )}
-    </div>
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-gray-800/50 rounded-xl shadow-xl p-6 border border-gray-700">
+      <h2 className="text-3xl font-bold text-white mb-4 flex items-center tracking-tight">
+        <Shield className="h-8 w-8 mr-3 text-blue-400" />
+        Admin Review Queue
+      </h2>
+      <p className="text-gray-400 mb-6">Documents flagged by the AI for manual verification are listed below.</p>
+      
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-left">
+          <thead className="border-b border-gray-600 text-sm text-gray-300 uppercase">
+            <tr>
+              <th className="p-4 font-semibold">Document</th>
+              <th className="p-4 font-semibold">Submitted At</th>
+              <th className="p-4 font-semibold">AI Risk Assessment</th>
+              <th className="p-4 font-semibold text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan="4" className="text-center p-16"><Loader className="h-10 w-10 animate-spin text-blue-400 mx-auto" /></td></tr>
+            ) : adminQueue.length > 0 ? (
+              <AnimatePresence>
+                {adminQueue.map((record) => (
+                  <RecordRow key={record._id} record={record} onViewRecord={onViewRecord} onAction={handleAction} />
+                ))}
+              </AnimatePresence>
+            ) : (
+              <tr>
+                <td colSpan="4" className="text-center p-16 text-gray-500">
+                  <Inbox className="h-16 w-16 mx-auto mb-4 text-gray-600" />
+                  <h3 className="text-xl font-semibold text-gray-300">The review queue is empty.</h3>
+                  <p className="mt-1">All pending documents have been processed.</p>
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </motion.div>
   );
 };
 

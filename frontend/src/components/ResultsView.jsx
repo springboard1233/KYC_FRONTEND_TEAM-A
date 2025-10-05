@@ -7,8 +7,6 @@ import DocumentManipulationDisplay from './DocumentManipulationDisplay';
 import FraudScoreProgressBar from './FraudScoreProgressBar'; // Corrected import path
 import { recordsService } from '../utils/recordsService'; // Assume service is updated with submitForReview
 
-// --- REUSABLE SUB-COMPONENTS ---
-
 const AnalysisCard = memo(({ title, icon: Icon, children, className = '' }) => (
     <motion.div 
         variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
@@ -21,37 +19,9 @@ const AnalysisCard = memo(({ title, icon: Icon, children, className = '' }) => (
         {children}
     </motion.div>
 ));
-
-const RecordHeader = memo(({ record, isSubmitting, onSubmit, onProcessAnother, StatusBadge }) => (
-    <div className="bg-gray-800/30 rounded-xl p-6 border border-gray-700/50">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <div>
-                <div className="flex items-center gap-4">
-                    <h2 className="text-2xl font-bold text-white">AI Analysis Results</h2>
-                    <StatusBadge status={record.status || 'pending'} />
-                </div>
-                <p className="text-gray-400 mt-1 truncate max-w-md" title={record.filename}>
-                    Displaying results for <span className="font-medium text-gray-200">{record.filename}</span>
-                </p>
-            </div>
-            <div className="flex flex-shrink-0 gap-3">
-                <button onClick={onSubmit} disabled={isSubmitting || record.status === 'pending'} className="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 rounded-lg font-medium disabled:opacity-60 flex items-center space-x-2 transition-colors">
-                    {isSubmitting ? <Loader className="animate-spin h-5 w-5" /> : <Send className="h-5 w-5" />}
-                    <span>{record.status === 'pending' ? 'Submitted' : 'Submit for Review'}</span>
-                </button>
-                <button onClick={onProcessAnother} className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-medium flex items-center space-x-2 transition-colors">
-                    <Plus className="h-5 w-5" />
-                    <span>Process Another</span>
-                </button>
-            </div>
-        </div>
-    </div>
-));
-
-// --- MAIN COMPONENT ---
-
 const ResultsView = ({ extractionResult, getStatusBadge: StatusBadge, setCurrentView, addNotification, fetchDashboardData }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
+
 
     const handleSubmitForReview = useCallback(async (recordId) => {
         if (!recordId) return;
@@ -131,4 +101,3 @@ const ResultsView = ({ extractionResult, getStatusBadge: StatusBadge, setCurrent
 };
 
 export default ResultsView;
-

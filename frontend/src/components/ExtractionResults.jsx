@@ -25,7 +25,12 @@ const ExtractionResults = ({ extractionResult, setCurrentView }) => {
     extracted_fields = {},
     fraud_analysis = {},
     manipulation_result = {},
-    user_entered_name
+    user_entered_name,
+    status,
+    confidence_score,
+    risk_category,
+    fraud_score,
+    analysis_details = {},
   } = extractionResult;
   
   const containerVariants = {
@@ -43,14 +48,28 @@ const ExtractionResults = ({ extractionResult, setCurrentView }) => {
 
   return (
     <motion.div 
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className="space-y-8"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="space-y-8"
     >
       <motion.header variants={itemVariants} className="text-center">
         <CheckCircle className="h-16 w-16 text-green-400 mx-auto" />
         <h1 className="text-3xl font-bold text-white mt-4">Verification Processed</h1>
+        <div className="flex flex-wrap justify-center gap-6 mt-4">
+          <div className="bg-gray-900/60 rounded-lg px-6 py-3 text-left shadow border border-gray-700">
+            <span className="text-gray-400">Status:</span> <span className="text-white font-bold ml-2">{status || 'N/A'}</span>
+          </div>
+          <div className="bg-gray-900/60 rounded-lg px-6 py-3 text-left shadow border border-gray-700">
+            <span className="text-gray-400">Confidence:</span> <span className="text-white font-bold ml-2">{confidence_score ?? fraud_analysis.ai_confidence ?? 'N/A'}%</span>
+          </div>
+          <div className="bg-gray-900/60 rounded-lg px-6 py-3 text-left shadow border border-gray-700">
+            <span className="text-gray-400">Risk Category:</span> <span className="text-white font-bold ml-2">{risk_category ?? fraud_analysis.risk_category ?? 'N/A'}</span>
+          </div>
+          <div className="bg-gray-900/60 rounded-lg px-6 py-3 text-left shadow border border-gray-700">
+            <span className="text-gray-400">Fraud Score:</span> <span className="text-white font-bold ml-2">{fraud_score ?? fraud_analysis.fraud_score ?? 'N/A'}%</span>
+          </div>
+        </div>
         <p className="text-gray-400 mt-2 max-w-2xl mx-auto">The document has been analyzed by our AI pipeline. The results are summarized below and have been submitted for final review.</p>
       </motion.header>
 
@@ -87,6 +106,26 @@ const ExtractionResults = ({ extractionResult, setCurrentView }) => {
       {/* Document Manipulation Display */}
       <motion.div variants={itemVariants}>
         <DocumentManipulationDisplay manipulationResult={manipulation_result} />
+      </motion.div>
+
+      {/* Analysis Checklist Display */}
+      <motion.div variants={itemVariants} className="bg-gray-800/50 rounded-xl shadow-xl p-6 border border-gray-700">
+        <h3 className="text-lg font-semibold text-gray-100 mb-4 flex items-center">
+          <CheckCircle className="h-5 w-5 mr-3 text-green-400" />
+          Analysis Checklist
+        </h3>
+        <div className="space-y-2">
+          {fraud_analysis.analysis_details?.manipulation_result?.detected_issues?.length > 0 ? (
+            fraud_analysis.analysis_details.manipulation_result.detected_issues.map((issue, idx) => (
+              <div key={idx} className="flex items-center text-sm text-red-400">
+                <CheckCircle className="h-4 w-4 mr-2 text-yellow-400" />
+                {issue}
+              </div>
+            ))
+          ) : (
+            <div className="text-sm text-gray-500">No issues detected.</div>
+          )}
+        </div>
       </motion.div>
 
       <motion.div variants={itemVariants} className="text-center space-y-4 pt-4">

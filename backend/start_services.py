@@ -1,43 +1,48 @@
 #!/usr/bin/env python3
 """
 Startup script for Milestone 3: AML/KYC Compliance System
-Runs both Flask backend and FastAPI compliance service
+Runs both Flask backend and FastAPI compliance service using environment variables for configuration.
 """
 
 import os
 import sys
 import subprocess
 import time
-import signal
-import threading
+import multiprocessing
 from pathlib import Path
+from dotenv import load_dotenv
 
+# Load environment variables from .env file
+load_dotenv()
 
-def run_flask_backend():
-    """Run the Flask backend service"""
-    print("🚀 Starting Flask Backend Service...")
+def run_flask_backend(host: str, port: int):
+    """Run the Flask backend service."""
+    print(f"🚀 Starting Flask Backend Service on http://{host}:{port}...")
     try:
-        # Change to backend directory
+        # The run.py script will use FLASK_HOST and FLASK_PORT from the environment.
+        # We ensure they are set for clarity, though run.py has defaults.
+        env = os.environ.copy()
+        env["FLASK_HOST"] = host
+        env["FLASK_PORT"] = str(port)
+        
+        # Change to backend directory to ensure relative paths in the app work correctly.
         backend_dir = Path(__file__).parent
-        os.chdir(backend_dir)
-
-        # Run Flask app
-        subprocess.run([sys.executable, "run.py"], check=True)
+        
+        subprocess.run([sys.executable, "run.py"], check=True, cwd=backend_dir, env=env)
     except KeyboardInterrupt:
         print("🛑 Flask Backend Service stopped")
     except Exception as e:
         print(f"❌ Flask Backend Service error: {e}")
 
 
-def run_fastapi_service():
-    """Run the FastAPI compliance service"""
-    print("🚀 Starting FastAPI Compliance Service...")
+def run_fastapi_service(host: str, port: int):
+    """Run the FastAPI compliance service."""
+    print(f"🚀 Starting FastAPI Compliance Service on http://{host}:{port}...")
     try:
-        # Change to backend directory
+        # Change to backend directory to ensure relative paths in the app work correctly.
         backend_dir = Path(__file__).parent
-        os.chdir(backend_dir)
-
-        # Run FastAPI app
+        
+        # Run FastAPI app using uvicorn
         subprocess.run(
             [
                 sys.executable,
@@ -45,12 +50,13 @@ def run_fastapi_service():
                 "uvicorn",
                 "aml_compliance_service:app",
                 "--host",
-                "127.0.0.1",
+                host,
                 "--port",
-                "8001",
+                str(port),
                 "--reload",
             ],
             check=True,
+            cwd=backend_dir
         )
     except KeyboardInterrupt:
         print("🛑 FastAPI Compliance Service stopped")
@@ -59,57 +65,49 @@ def run_fastapi_service():
 
 
 def main():
-    """Main startup function"""
+    """Main startup function to orchestrate all services."""
+    # REFACTOR: Read host and port from environment variables for both services
+    flask_host = os.getenv("FLASK_HOST", "127.0.0.1")
+    flask_port = int(os.getenv("FLASK_PORT", 5000))
+    fastapi_host = os.getenv("FASTAPI_HOST", "127.0.0.1")
+    fastapi_port = int(os.getenv("FASTAPI_PORT", 8001))
+    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+
     print("=" * 80)
-    print("🚀 MILESTONE 3: AML/KYC COMPLIANCE SYSTEM STARTUP")
+    print("🚀 KYC COMPLIANCE SYSTEM STARTUP SCRIPT")
     print("=" * 80)
-    print("🤖 AI FEATURES ENABLED:")
-    print("   ✅ AI-Powered Name Matching with Fuzzy Logic")
-    print("   ✅ Advanced Document Manipulation Detection")
-    print("   ✅ Complete Admin Approval Workflow")
-    print("   ✅ Fraud Pattern Analysis & Recognition")
-    print("   ✅ Duplicate Document Detection (MongoDB)")
-    print("   ✅ Enhanced Analytics & Reporting")
-    print("   ✅ MongoDB Database Integration")
-    print("   ✅ Real-time Fraud Detection Pipeline")
-    print("   ✅ AML/KYC Compliance Rules Engine")
-    print("   ✅ Compliance Alerts & Monitoring")
+    print("🌐 SERVICES & CONFIGURATION:")
+    print(f"   - Flask Backend: http://{flask_host}:{flask_port}")
+    print(f"   - FastAPI Compliance: http://{fastapi_host}:{fastapi_port}")
+    print(f"   - Frontend Expected at: {frontend_url}")
     print("=" * 80)
-    print("🌐 SERVICES STARTING:")
-    print("   📍 Flask Backend: http://127.0.0.1:5000")
-    print("   📍 FastAPI Compliance: http://127.0.0.1:8001")
-    print("   📍 Frontend: http://localhost:3000")
-    print("=" * 80)
-    print("🗄️ MONGODB CONFIGURATION:")
-    print("   Database: kyc_database")
-    print(
-        "   Collections: users, records, permanent_records, admin_decisions, fraud_alerts, audit_logs"
-    )
-    print("   Connection: mongodb://localhost:27017/")
+    print("🗄️  DATABASE:")
+    print(f"   - MongoDB URI: {os.getenv('MONGO_URI', 'mongodb://localhost:27017/kyc_database')}")
     print("=" * 80)
 
-    # Start services in separate threads
-    flask_thread = threading.Thread(target=run_flask_backend, daemon=True)
-    fastapi_thread = threading.Thread(target=run_fastapi_service, daemon=True)
+    # Start services in separate processes for proper app context isolation
+    flask_proc = multiprocessing.Process(target=run_flask_backend, args=(flask_host, flask_port), daemon=True)
+    fastapi_proc = multiprocessing.Process(target=run_fastapi_service, args=(fastapi_host, fastapi_port), daemon=True)
 
     try:
-        # Start both services
-        flask_thread.start()
-        time.sleep(2)  # Give Flask a moment to start
-        fastapi_thread.start()
+        flask_proc.start()
+        # Give the first service a moment to bind to its port before starting the next
+        time.sleep(2)
+        fastapi_proc.start()
 
-        print("✅ Both services started successfully!")
-        print("📋 Press Ctrl+C to stop all services")
+        print("\n✅ Both services have been started successfully!")
+        print("📋 Press Ctrl+C to stop all services.")
 
-        # Wait for threads to complete
-        flask_thread.join()
-        fastapi_thread.join()
+        # Keep the main process alive to listen for KeyboardInterrupt
+        flask_proc.join()
+        fastapi_proc.join()
 
     except KeyboardInterrupt:
-        print("\n🛑 Shutting down services...")
-        print("✅ All services stopped successfully!")
+        print("\n🛑 Shutting down all services...")
+        flask_proc.terminate()
+        fastapi_proc.terminate()
+        print("✅ Shutdown complete.")
 
 
 if __name__ == "__main__":
     main()
-

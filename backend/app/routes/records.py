@@ -2,136 +2,155 @@
 import logging
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
-
 from bson import ObjectId
+
+# Local application imports
 from ..models.record import EnhancedRecord
 from ..utils.database import get_db
 
 records_bp = Blueprint("records", __name__)
 logger = logging.getLogger(__name__)
 
+def serialize_record(record):
+    """Helper function to convert a MongoDB record document to a JSON-serializable dict."""
+    if isinstance(record, EnhancedRecord):
+        # If it's already a model instance, use its to_dict method
+        return record.to_dict()
+    
+    # Handle raw PyMongo documents
+    if record.get("_id"):
+        record["_id"] = str(record["_id"])
+    if record.get("user_id"):
+        record["user_id"] = str(record["user_id"])
+    if record.get("created_at"):
+        record["created_at"] = record["created_at"].isoformat()
+    if record.get("updated_at"):
+        record["updated_at"] = record["updated_at"].isoformat()
+    return record
+
 @records_bp.route("/records", methods=["GET"])
 @jwt_required()
 def get_records():
     """
-    Fetches all records (pending and permanent) for the currently logged-in user.
+    Fetches records. For users, it gets their own records.
+    PERF_FIX: For admins, it now uses pagination to fetch all records efficiently.
     """
     try:
         claims = get_jwt()
         is_admin = claims.get("role") == "admin"
         
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('limit', 10))
+        skip = (page - 1) * per_page
+        
+        db = get_db()
+        records_cursor = None
+        total_count = 0
+        
         if is_admin:
-            # Admins get all records
-            records = EnhancedRecord.get_all()
+            # For admins, query all records with pagination
+            records_cursor = db.records.find().sort("created_at", -1).skip(skip).limit(per_page)
+            total_count = db.records.count_documents({})
         else:
-            # Regular users get only their own records
+            # For regular users, get only their own records
             current_user_id = get_jwt_identity()
-            records = EnhancedRecord.get_by_user(current_user_id)
+            query = {"user_id": ObjectId(current_user_id)}
+            records_cursor = db.records.find(query).sort("created_at", -1).skip(skip).limit(per_page)
+            total_count = db.records.count_documents(query)
 
-        records_list = [r.to_dict() for r in records]
+        records_list = [serialize_record(r) for r in records_cursor]
+        total_pages = (total_count + per_page - 1) // per_page
+        
         logger.info(f"Fetched {len(records_list)} records for user {get_jwt_identity()} (admin={is_admin}).")
-        return jsonify(records=records_list), 200
+        
+        return jsonify(
+            records=records_list,
+            total_count=total_count,
+            total_pages=total_pages,
+            page=page
+        ), 200
+
     except Exception as e:
-        logger.error(f"Error fetching records for user {get_jwt_identity()}: {e}", exc_info=True)
+        logger.error(f"Error fetching records: {e}", exc_info=True)
         return jsonify({"error": "Failed to retrieve records."}), 500
+
 
 @records_bp.route("/records/stats", methods=["GET"])
 @jwt_required()
 def get_stats():
     """
-    Calculates and returns dashboard statistics for the currently logged-in user.
+    Calculates and returns dashboard statistics.
+    PERF_FIX: For admins, this now processes records directly from the DB cursor,
+    avoiding creating thousands of Python objects in memory.
     """
     try:
         claims = get_jwt()
         is_admin = claims.get("role") == "admin"
-
-        if is_admin:
-            user_records = EnhancedRecord.get_all()
-        else:
+        db = get_db()
+        
+        query = {}
+        if not is_admin:
             current_user_id = get_jwt_identity()
-            user_records = EnhancedRecord.get_by_user(current_user_id)
-
-        stats = {
-            "total_records": len(user_records),
-            "verified_count": len([r for r in user_records if r.status == "approve"]),
-            "high_risk_count": len([r for r in user_records if r.risk_category == "high"]),
-            "medium_risk_count": len([r for r in user_records if r.risk_category == "medium"]),
-            "low_risk_count": len([r for r in user_records if r.risk_category == "low"]),
-            "aadhaar_count": len([r for r in user_records if r.document_type == "aadhaar"]),
-            "pan_count": len([r for r in user_records if r.document_type == "pan"]),
-            "avg_confidence": (
-                sum([r.confidence_score for r in user_records]) / len(user_records)
-                if user_records else 0
-            ),
-            "verification_success_rate": (
-                len([r for r in user_records if r.status == "approve"]) / len(user_records) * 100
-                if user_records else 0
-            ),
-            "fraud_detection_rate": (
-                len([r for r in user_records if r.risk_category == "high"]) / len(user_records) * 100
-                if user_records else 0
-            ),
-            "avg_fraud_score": (
-                sum([r.fraud_score for r in user_records]) / len(user_records)
-                if user_records else 0
-            ),
+            query = {"user_id": ObjectId(current_user_id)}
+            
+        # Efficiently fetch all records for stats calculation
+        user_records_cursor = db.records.find(query)
+        
+        # Process records directly from cursor to avoid high memory usage
+        stats_data = {
+            "total_records": 0, "verified_count": 0, "high_risk_count": 0,
+            "medium_risk_count": 0, "low_risk_count": 0, "aadhaar_count": 0,
+            "pan_count": 0, "confidence_sum": 0, "fraud_score_sum": 0
         }
-        return jsonify(stats=stats), 200
+
+        for r in user_records_cursor:
+            stats_data["total_records"] += 1
+            if r.get("status") in ["approve", "verified"]: stats_data["verified_count"] += 1
+            if r.get("risk_category") == "high": stats_data["high_risk_count"] += 1
+            if r.get("risk_category") == "medium": stats_data["medium_risk_count"] += 1
+            if r.get("risk_category") == "low": stats_data["low_risk_count"] += 1
+            if r.get("document_type") == "aadhaar": stats_data["aadhaar_count"] += 1
+            if r.get("document_type") == "pan": stats_data["pan_count"] += 1
+            stats_data["confidence_sum"] += r.get("confidence_score", 0)
+            stats_data["fraud_score_sum"] += r.get("fraud_score", 0)
+
+        total = stats_data["total_records"]
+        final_stats = {
+            **stats_data,
+            "avg_confidence": (stats_data["confidence_sum"] / total) if total > 0 else 0,
+            "verification_success_rate": (stats_data["verified_count"] / total * 100) if total > 0 else 0,
+            "fraud_detection_rate": (stats_data["high_risk_count"] / total * 100) if total > 0 else 0,
+            "avg_fraud_score": (stats_data["fraud_score_sum"] / total) if total > 0 else 0,
+        }
+        # Remove sum fields
+        del final_stats["confidence_sum"]
+        del final_stats["fraud_score_sum"]
+
+        return jsonify(stats=final_stats), 200
+        
     except Exception as e:
-        logger.error(f"Error calculating stats for user {get_jwt_identity()}: {e}", exc_info=True)
+        logger.error(f"Error calculating stats: {e}", exc_info=True)
         return jsonify({"error": "Failed to retrieve stats."}), 500
-
-@records_bp.route("/records/<record_id>", methods=["GET"])
-@jwt_required()
-def get_record_by_id(record_id):
-    """
-    Fetch a single record by its ID for the current user.
-    """
-    current_user_id = get_jwt_identity()
-    try:
-        record = EnhancedRecord.get_by_id(record_id)
-        if not record or str(record.user_id) != str(current_user_id):
-            return jsonify({"error": "Record not found."}), 404
-        return jsonify(record=record.to_dict()), 200
-    except Exception as e:
-        logger.error(f"Error fetching record {record_id}: {e}", exc_info=True)
-        return jsonify({"error": "Failed to retrieve record."}), 500
-
 @records_bp.route("/records/<record_id>", methods=["DELETE"])
 @jwt_required()
 def delete_record(record_id):
     """
-    Delete a record by its ID for the current user.
+    Deletes a record by its ID. Users can delete their own records; admins can delete any record.
     """
-    current_user_id = get_jwt_identity()
     try:
-        record = EnhancedRecord.get_by_id(record_id)
-        if not record or str(record.user_id) != str(current_user_id):
-            return jsonify({"error": "Record not found."}), 404
+        claims = get_jwt()
+        is_admin = claims.get("role") == "admin"
+        current_user_id = get_jwt_identity()
         db = get_db()
-        db.records.delete_one({"_id": record._id})
-        return jsonify({"success": True}), 200
+        record = db.records.find_one({"_id": ObjectId(record_id)})
+        if not record:
+            return jsonify({"error": "Record not found."}), 404
+        # Only allow if admin or owner
+        if not is_admin and str(record.get("user_id")) != str(current_user_id):
+            return jsonify({"error": "Unauthorized to delete this record."}), 403
+        db.records.delete_one({"_id": ObjectId(record_id)})
+        logger.info(f"Record {record_id} deleted by user {current_user_id} (admin={is_admin})")
+        return jsonify({"success": True, "message": "Record deleted successfully."}), 200
     except Exception as e:
         logger.error(f"Error deleting record {record_id}: {e}", exc_info=True)
         return jsonify({"error": "Failed to delete record."}), 500
-
-@records_bp.route("/records/<record_id>/submit-review", methods=["POST"])
-@jwt_required()
-def submit_for_review(record_id):
-    """
-    Allows a user to reset a record's status to 'pending' for re-review.
-    """
-    current_user_id = get_jwt_identity()
-    try:
-        record = EnhancedRecord.get_by_id(record_id)
-        
-        if not record or str(record.user_id) != str(current_user_id):
-            return jsonify({"error": "Record not found or access denied."}), 404
-        
-        # Update status to pending
-        db = get_db()
-        db.records.update_one({"_id": ObjectId(record_id)}, {"$set": {"status": "pending"}})
-        return jsonify({"success": True, "message": "Record submitted for review."}), 200
-    except Exception as e:
-        logger.error(f"Error submitting record {record_id} for review: {e}", exc_info=True)
-        return jsonify({"error": "Failed to submit for review."}), 500

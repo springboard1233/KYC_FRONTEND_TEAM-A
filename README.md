@@ -1,112 +1,115 @@
-# AI-Powered KYC Verification System
+# AI-Powered KYC Verification & Fraud Detection System
 
-This is a full-stack web application for Know Your Customer (KYC) verification, featuring an AI-powered document processing and fraud detection pipeline. It includes a user-facing dashboard for document submission and an admin panel for review, compliance, and auditing.
+This is a full-stack web application designed to automate the Know Your Customer (KYC) process using a powerful AI pipeline. It analyzes uploaded identity documents (like Aadhaar and PAN cards) to extract information, detect fraud, and provide a comprehensive review dashboard for administrators.
 
-## 🚀 Features
+## 🏛️ Project Architecture
 
-- **User Authentication**: Secure user registration and login with OTP email verification.
-- **Document Upload**: Users can upload Aadhaar and PAN documents (PDF, JPG, PNG).
-- **AI-Powered OCR**: Extracts data from documents using an advanced OCR engine.
-- **Advanced Fraud Detection**:
-  - Detects document tampering and manipulation using computer vision techniques.
-  - Checks for duplicates and known fraudulent numbers against a database blacklist.
-  - Provides a detailed fraud score and risk category (Low, Medium, High).
-- **User Dashboard**:
-  - View a list of all submitted documents and their current status (Pending, Approved, Rejected).
-  - See detailed analytics and charts for personal verification history.
-- **Admin Panel**:
-  - Secure, role-protected dashboard for administrators.
-  - Review queue for all pending user submissions.
-  - Approve or reject documents with a single click.
-  - Manage all users in the system and update their roles.
-- **Compliance & Auditing**:
-  - System-wide analytics dashboard for compliance officers.
-  - Real-time fraud and compliance alerts.
-  - Complete, paginated audit trail logging all critical user and admin actions.
-  - Export all records to a CSV file for reporting.
+The application uses a microservice-oriented architecture to separate concerns and ensure scalability.
 
-## 🏛️ Architecture
+* **Frontend:** A modern, responsive single-page application built with **React (Vite)** and styled with **Tailwind CSS**.
+* **Backend (Primary API):** A **Flask** application that handles user authentication, core business logic, document uploads, and serves as the main gateway for the frontend.
+* **Backend (AI/Compliance Service):** A high-performance **FastAPI** microservice dedicated to running the computationally intensive AI pipeline, including OCR, fraud detection, and compliance checks.
+* **Database:** **MongoDB** is used as the primary database for storing user data, document records, audit logs, and analysis results.
 
-The project is built on a modern microservices-oriented architecture:
+## ✨ Key Features
 
-- **Frontend**: A responsive single-page application built with **React** and **Vite**, using **Tailwind CSS** for styling and **Recharts** for data visualization.
-- **Backend (Primary API)**: A **Flask** application that handles user authentication, document uploads, and core business logic.
-- **Backend (Compliance Service)**: A standalone **FastAPI** service that runs the AI models, compliance rules engine, and fraud detection pipeline.
-- **Database**: **MongoDB** is used as the primary data store for users, records, alerts, and audit logs.
-- **Communication**: The frontend communicates with the backend services via two Vite server proxies for a seamless development experience.
-
-## 🛠️ Prerequisites
-
-Before you begin, ensure you have the following installed on your system:
-- **Node.js** (v16 or later) and **npm**
-- **Python** (v3.10 or later) and **pip**
-- **MongoDB** (running locally or accessible via a connection URI)
+* **Secure User Authentication:** Full signup, login, and session management with OTP email verification.
+* **AI Document Processing:** An end-to-end pipeline that performs:
+    * **OCR:** Extracts text from uploaded images and PDFs.
+    * **AI Name Matching:** Compares the user-entered name against the name extracted from the document using fuzzy logic.
+    * **Document Integrity Analysis:** Scans for signs of digital tampering and manipulation.
+* **Advanced Fraud Scoring:** A dynamic risk engine that assigns a fraud score based on multiple vectors (manipulation, data mismatch, duplicate submissions).
+* **User Dashboard:** Allows users to upload documents, view their submission history, and see the detailed results of the AI analysis and the final admin decision.
+* **Admin & Compliance Dashboards:** A secure, role-based interface for administrators to:
+    * Review and approve/reject pending submissions with comments.
+    * View system-wide analytics on document processing and risk trends.
+    * Monitor a real-time audit trail of all significant system events.
 
 ---
 
-## ⚙️ Setup & Installation
+## 🚀 Local Setup and Installation
+
+Follow these instructions to get the project running on your local machine.
+
+### Prerequisites
+
+* **Node.js** (v18 or later)
+* **Python** (v3.10 or later)
+* **MongoDB** (running locally or via Atlas)
+* **Tesseract-OCR Engine:** The OCR service will not work without this.
+    * On macOS: `brew install tesseract`
+    * On Ubuntu/Debian: `sudo apt-get install tesseract-ocr`
 
 ### 1. Backend Setup
 
-Navigate to the `backend` directory and set up the Python environment.
+1.  **Navigate to the `backend` directory:**
+    ```bash
+    cd backend
+    ```
 
-```bash
-# Navigate to the backend directory
-cd backend
+2.  **Create and activate a Python virtual environment:**
+    ```bash
+    python -m venv venv
+    source venv/bin/activate
+    ```
 
-# Create a virtual environment
-# On macOS/Linux
-python3 -m venv venv
-source venv/bin/activate
-# On Windows
-# python -m venv venv
-# .\venv\Scripts\Activate.ps1
+3.  **Install dependencies:**
+    ```bash
+    pip install -r requirements.txt
+    ```
 
-# Install dependencies
-pip install -r requirements.txt
+4.  **Create the environment file:**
+    * Create a file named `.env` in the `backend` directory.
+    * Copy the content below into it and replace the placeholder values with your own secure keys.
 
-# Create a .env file from the example
-# (You can copy/paste the contents of .env.example into a new .env file)
-# Make sure your MONGO_URI is correct if your database requires authentication.
-2. Frontend Setup
-In a separate terminal, navigate to the frontend directory and set up the Node.js environment.
+    ```
+    # backend/.env
+    FLASK_ENV=development
+    SECRET_KEY=a_very_strong_random_secret_key_for_flask
+    JWT_SECRET_KEY=another_very_strong_random_jwt_secret
+    MONGO_URI=mongodb://localhost:27017/kyc_database
 
-Bash
+    # Default user credentials (created on first run)
+    ADMIN_DEFAULT_PASSWORD=your_secure_admin_password
+    TEST_DEFAULT_PASSWORD=your_secure_test_password
 
-# Navigate to the frontend directory
-cd frontend
+    # Server Ports
+    FLASK_HOST=127.0.0.1
+    FLASK_PORT=5001
+    FASTAPI_HOST=127.0.0.1
+    FASTAPI_PORT=8001
+    
+    # Frontend URL for CORS
+    FRONTEND_URL=http://localhost:5173
+    ```
 
-# Install dependencies
-npm install
+5.  **Run the backend services:**
+    ```bash
+    python start_services.py
+    ```
+    *This will start both the Flask API (on port 5001) and the FastAPI service (on port 8001).*
 
-# The project is pre-configured to use the backend proxy,
-# so no .env file is strictly necessary for local development.
-▶️ Running the Application
-You will need three separate terminals running simultaneously.
+### 2. Frontend Setup
 
-Terminal 1: Start MongoDB
-Ensure your MongoDB server is running. If it's not running as a background service, you may need to start it manually.
+1.  **Open a new terminal** and navigate to the `frontend` directory:
+    ```bash
+    cd frontend
+    ```
 
-Bash
+2.  **Install dependencies:**
+    ```bash
+    npm install
+    ```
 
-# Example command to start MongoDB
-mongod
-Terminal 2: Start Backend Services
-Bash
+3.  **Run the development server:**
+    ```bash
+    npm run dev
+    ```
+    *The frontend will be available at `http://localhost:5173`.*
 
-# In the `backend` directory (with venv activated)
-python start_services.py
-This command starts both the Flask API (port 5000) and the FastAPI Compliance Service (port 8001).
+### 3. Usage
 
-Terminal 3: Start Frontend Server
-Bash
-
-# In the `frontend` directory
-npm run dev
-The application will be available at http://localhost:5173.
-
-Default Admin Credentials
-Email: admin@kyc.com
-
-Password: admin123
-
+* Open `http://localhost:5173` in your browser.
+* You can sign up as a new user or log in with the default admin credentials:
+    * **Email:** `admin@kyc.com`
+    * **Password:** The value you set for `ADMIN_DEFAULT_PASSWORD` in your `.env` file.

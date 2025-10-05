@@ -1,33 +1,31 @@
 // FILE: frontend/src/components/AINameMatchingDisplay.jsx
 import React, { memo } from 'react';
-import { UserCheck, UserX, Info, Smile, Frown } from 'lucide-react';
+import { UserCheck, UserX, Info } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const AINameMatchingDisplay = ({ nameMatchingResult, userEnteredName, extractedFields }) => {
-  const extractedName = extractedFields?.name || extractedFields?.full_name || 'N/A';
+  const extractedName = extractedFields?.name || 'N/A';
+  // FIX: Align frontend status checks with the backend's output ('high', 'partial', 'low').
   const matchStatus = nameMatchingResult?.match_status || 'unknown';
-  const similarityScore = nameMatchingResult?.similarity_score ?? 0;
-  const matchDetails = nameMatchingResult?.details || 'No specific details provided.';
+  const similarityScore = nameMatchingResult?.score ?? 0;
 
-  let statusIcon;
-  let statusText;
-  let statusColorClass;
+  let statusIcon, statusText, statusColorClass;
 
   switch (matchStatus) {
-    case 'matched':
+    case 'high':
       statusIcon = <UserCheck className="h-8 w-8 text-green-400" />;
       statusText = 'Name Matched';
       statusColorClass = 'text-green-400';
       break;
-    case 'not_matched':
-      statusIcon = <UserX className="h-8 w-8 text-red-400" />;
-      statusText = 'Name Not Matched';
-      statusColorClass = 'text-red-400';
-      break;
-    case 'partial_match':
+    case 'partial':
       statusIcon = <UserCheck className="h-8 w-8 text-yellow-400" />;
       statusText = 'Partial Match';
       statusColorClass = 'text-yellow-400';
+      break;
+    case 'low':
+      statusIcon = <UserX className="h-8 w-8 text-red-400" />;
+      statusText = 'Name Mismatch';
+      statusColorClass = 'text-red-400';
       break;
     default:
       statusIcon = <Info className="h-8 w-8 text-gray-400" />;
@@ -52,24 +50,15 @@ const AINameMatchingDisplay = ({ nameMatchingResult, userEnteredName, extractedF
           {statusIcon}
           <p className={`text-xl font-bold mt-2 ${statusColorClass}`}>{statusText}</p>
           {matchStatus !== 'unknown' && (
-            <p className="text-sm text-gray-400">Similarity: <span className="font-medium text-white">{similarityScore.toFixed(2)}%</span></p>
+            <p className="text-sm text-gray-400">Similarity: <span className="font-medium text-white">{similarityScore.toFixed(1)}%</span></p>
           )}
         </div>
-        <div className="w-px h-16 bg-gray-700 hidden sm:block"></div> {/* Separator */}
+        <div className="w-px h-16 bg-gray-700 hidden sm:block"></div>
         <div className="text-sm space-y-2">
-          <p className="text-gray-300"><span className="font-semibold">User-Entered Name:</span> <span className="text-white">{userEnteredName || 'N/A'}</span></p>
-          <p className="text-gray-300"><span className="font-semibold">Extracted Name:</span> <span className="text-white">{extractedName}</span></p>
+          <p className="text-gray-300"><span className="font-semibold">User-Entered:</span> <span className="text-white">{userEnteredName || 'N/A'}</span></p>
+          <p className="text-gray-300"><span className="font-semibold">Extracted:</span> <span className="text-white">{extractedName}</span></p>
         </div>
       </div>
-      
-      {matchStatus !== 'unknown' && (
-        <div className="mt-6 border-t border-gray-700 pt-4">
-          <h4 className="text-md font-semibold text-gray-200 mb-2 flex items-center">
-            <Info className="h-4 w-4 mr-2 text-blue-400" /> Match Details
-          </h4>
-          <p className="text-sm text-gray-400">{matchDetails}</p>
-        </div>
-      )}
     </motion.div>
   );
 };

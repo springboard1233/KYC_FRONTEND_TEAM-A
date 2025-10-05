@@ -1,113 +1,63 @@
-
-from flask_jwt_extended import JWTManager
-from .routes.records import records_bp
-from .routes.health import health_bp
-from flask import Flask, jsonify, request
+# Standard library imports
 import os
-from .config import config_map
 import logging
+from flask import Flask
 from flask_cors import CORS
-from .utils.database import db
-
-from .routes.admin import admin_bp
-from .routes.auth import auth_bp
-from .routes.ocr import ocr_bp
-from .routes.audit import audit_bp
-# from .routes.compliance import compliance_bp  # <-- Disabled to prevent conflict with FastAPI service
-
+from flask_jwt_extended import JWTManager
+from .config import get_config
+from .routes import register_blueprints
+from .utils.database import init_app as init_db_app, close_db
 
 def create_app(config_name=None):
     """
-    Application factory function to create and configure the Flask app.
+    Creates and configures a Flask application instance.
     """
-    app = Flask(__name__)
+    app = Flask(__name__, instance_relative_config=True)
 
-    # 1. Load Configuration
+    # Configure logging
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+    # Load configuration from environment or default
     if config_name is None:
-        config_name = os.getenv("FLASK_ENV", "development")
-    app.config.from_object(config_map[config_name])
+        config_name = os.getenv('FLASK_CONFIG', 'default')
+    
+    config = get_config(config_name)
+    app.config.from_object(config)
+    app.logger.info(f"Application configured with '{config_name}' settings.")
 
-    # Load allowed extensions from config
-    app.config.setdefault("ALLOWED_EXTENSIONS", {"png", "jpg", "jpeg", "pdf"})
+    # Configure CORS for the frontend
+    frontend_url = app.config.get("FRONTEND_URL", "http://localhost:5173")
+    CORS(app, resources={r"/api/*": {"origins": frontend_url}}, supports_credentials=True)
 
-    # 2. Configure Logging
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    )
-    logger = logging.getLogger(__name__)
+    # Initialize database
+    init_db_app(app)
 
-    # 3. Initialize Extensions
-    CORS(
-        app,
-        resources={
-            r"/*": {
-                "origins": [
-                    "http://localhost:5173",
-                    "http://localhost:5174",
-                    "http://127.0.0.1:5173",
-                    "http://127.0.0.1:5174",
-                ]
-            }
-        },
-        supports_credentials=True,
-        allow_headers=[
-            "Content-Type",
-            "Authorization",
-            "Access-Control-Allow-Credentials",
-        ],
-        methods=["GET", "PUT", "POST", "DELETE", "OPTIONS"],
-    )
+    # Initialize JWTManager
+    JWTManager(app)
 
-    jwt = JWTManager(app)
-    db.init_app(app)  # Initialize the database with the app
+    # Register all blueprints
+    register_blueprints(app)
 
-    # 4. Register Blueprints
-    app.register_blueprint(auth_bp, url_prefix="/api")
-    app.register_blueprint(ocr_bp, url_prefix="/api")
-    app.register_blueprint(records_bp, url_prefix="/api")
-    app.register_blueprint(admin_bp, url_prefix="/api/admin")
-    app.register_blueprint(audit_bp, url_prefix="/api")
-    # app.register_blueprint(compliance_bp)  # <-- Disabled to prevent conflict with FastAPI service
-    app.register_blueprint(health_bp)
-    logger.info("✅ All blueprints registered successfully.")
+    # Register teardown function to close DB connection
+    app.teardown_appcontext(close_db)
 
-    # 5. Create upload directory if it's defined in config
-    if "UPLOAD_FOLDER" in app.config and app.config["UPLOAD_FOLDER"]:
+    # Ensure the instance folder exists
+    try:
+        os.makedirs(app.instance_path)
+        app.logger.info(f"Instance path created at: {app.instance_path}")
+    except OSError:
+        pass  # Already exists
+
+    # Create upload folder if it doesn't exist
+    upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
+    if not os.path.isabs(upload_folder):
+        upload_folder = os.path.join(app.instance_path, upload_folder)
+    
+    if not os.path.exists(upload_folder):
         try:
-            os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
-            logger.info(f"Upload folder '{app.config['UPLOAD_FOLDER']}' is ready.")
+            os.makedirs(upload_folder)
+            app.logger.info(f"Upload folder created at: {upload_folder}")
         except OSError as e:
-            logger.error(f"Error creating upload folder: {e}")
-
-    # 6. Define JWT Error Handlers
-    @jwt.expired_token_loader
-    def expired_token_callback(jwt_header, jwt_payload):
-        return jsonify(
-            {"error": "Token has expired", "message": "Please login again"}
-        ), 401
-
-    @jwt.invalid_token_loader
-    def invalid_token_callback(error):
-        return jsonify(
-            {"error": "Invalid token", "message": "Signature verification failed"}
-        ), 401
-
-    @jwt.unauthorized_loader
-    def missing_token_callback(error):
-        return jsonify(
-            {
-                "error": "Authorization token required",
-                "message": "Request does not contain an access token",
-            }
-        ), 401
-
-    # 7. CORS is handled by flask-cors extension above
-
-    # 8. Handle OPTIONS requests explicitly
-    @app.route("/", defaults={"path": ""}, methods=["OPTIONS"])
-    @app.route("/<path:path>", methods=["OPTIONS"])
-    def options_handler(path):
-        return "", 200
+            app.logger.error(f"Error creating upload folder: {e}")
 
     return app

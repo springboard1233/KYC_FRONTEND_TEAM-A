@@ -1,178 +1,207 @@
-// CHANGELOG: Upgraded dashboard with a visual compliance gauge, a filterable alerts table, and a cleaner hook-based architecture.
+// Loading spinner for async states
+const LoadingSpinner = () => (
+  <div className="flex justify-center items-center h-64 w-full">
+    <Loader className="animate-spin h-12 w-12 text-blue-400" />
+  </div>
+);
+
 import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import { motion } from 'framer-motion';
-import { Shield, AlertTriangle, CheckCircle, Clock, BarChart3, Download, Loader, Eye, ChevronDown } from 'lucide-react';
+import { Shield, AlertTriangle, Clock, BarChart3, Download, Loader, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import { complianceService } from '../utils/complianceService';
 import { adminService } from '../utils/adminService';
 import { transformRecordsForCSV, downloadCSVFromData } from '../utils/csvExport';
 
-// --- CUSTOM HOOK ---
-
-const useComplianceData = () => {
-  const [state, setState] = useState({
-    stats: null,
-    alerts: [],
-    loading: true,
-    error: '',
-  });
-
-  const fetchData = useCallback(async () => {
-    setState(s => ({ ...s, loading: true, error: '' }));
-    try {
-      const [statsData, alertsData] = await Promise.all([
-        complianceService.getStats(),
-        complianceService.getAlerts(),
-      ]);
-      setState({ stats: statsData, alerts: alertsData, loading: false, error: '' });
-    } catch (err) {
-      setState({ stats: null, alerts: [], loading: false, error: err.message || 'Failed to fetch compliance data.' });
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  return { ...state, refetch: fetchData };
-};
-
-
-// --- REUSABLE SUB-COMPONENTS ---
-
+// --- Reusable Sub-Components ---
 const StatCard = memo(({ title, value, icon: Icon, color = 'blue' }) => (
   <div className="bg-gray-900/50 p-4 rounded-lg border border-gray-700/50 h-full flex flex-col justify-between">
-    <div className="flex items-center justify-between text-gray-400">
-      <p className="text-sm font-medium">{title}</p>
-      <Icon className={`h-5 w-5 text-${color}-500`} />
-    </div>
-    <p className="text-3xl font-bold text-white mt-2">{value}</p>
+  <div className="flex items-center justify-between text-gray-400">
+    <p className="text-sm font-medium">{title}</p>
+    <Icon className={`h-5 w-5 text-${color}-500`} />
+  </div>
+  <p className="text-3xl font-bold text-white mt-2">{value}</p>
   </div>
 ));
 
 const ComplianceGauge = memo(({ score = 0 }) => {
-    const size = 120;
-    const strokeWidth = 10;
-    const radius = (size - strokeWidth) / 2;
-    const circumference = 2 * Math.PI * radius;
-    const offset = circumference - (score / 100) * circumference;
-    const color = score >= 90 ? 'text-green-400' : score >= 75 ? 'text-yellow-400' : 'text-red-400';
+  const color = score >= 90 ? 'text-green-400' : score >= 75 ? 'text-yellow-400' : 'text-red-400';
+  return (
+    <div className="bg-gray-900/50 p-4 rounded-lg border border-gray-700/50 flex flex-col items-center justify-center text-center h-full">
+      <p className="text-sm text-gray-300 font-semibold mb-3">Overall Compliance Score</p>
+      <div className={`text-5xl font-bold ${color}`}>{score.toFixed(0)}<span className="text-3xl">%</span></div>
+    </div>
+  );
+});
 
-    return (
-        <div className="bg-gray-900/50 p-4 rounded-lg border border-gray-700/50 flex flex-col items-center justify-center text-center">
-            <div className="relative" style={{ width: size, height: size }}>
-                <svg className="w-full h-full" viewBox={`0 0 ${size} ${size}`}>
-                    <circle className="text-gray-700" stroke="currentColor" strokeWidth={strokeWidth} fill="transparent" r={radius} cx={size/2} cy={size/2} />
-                    <motion.circle
-                        className={color}
-                        stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round"
-                        strokeDasharray={circumference}
-                        initial={{ strokeDashoffset: circumference }}
-                        animate={{ strokeDashoffset: offset }}
-                        transition={{ duration: 1, ease: "easeOut" }}
-                        fill="transparent" r={radius} cx={size/2} cy={size/2} transform={`rotate(-90 ${size/2} ${size/2})`}
-                    />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                    <span className={`text-3xl font-bold text-white`}>{score}<span className="text-xl">%</span></span>
-                </div>
-            </div>
-            <p className="text-sm text-gray-300 font-semibold mt-3">Compliance Score</p>
+// NEW: Audit Trail component integrated directly into the dashboard
+const AuditTrail = memo(() => {
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [pagination, setPagination] = useState({ page: 1, total_pages: 1 });
+
+  const fetchLogs = useCallback(async (page) => {
+    setLoading(true);
+    try {
+      const data = await adminService.getAuditTrail(page);
+      setLogs(data.logs || []);
+      setPagination({ page: data.page, total_pages: data.total_pages });
+    } catch (error) {
+      console.error("Failed to fetch audit trail:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchLogs(1);
+  }, [fetchLogs]);
+
+  return (
+    <div className="bg-gray-800/50 p-6 rounded-xl border border-gray-700">
+      <h3 className="text-xl font-bold text-white mb-4">System Audit Trail</h3>
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-sm">
+          {/* Table Head */}
+          <thead className="text-xs text-gray-400 uppercase">
+            <tr>
+              <th className="py-3 px-4">Timestamp</th>
+              <th className="py-3 px-4">User ID</th>
+              <th className="py-3 px-4">Action</th>
+              <th className="py-3 px-4">Details</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-700/50">
+            {loading ? (
+              <tr><td colSpan="4" className="text-center p-8"><Loader className="h-6 w-6 animate-spin mx-auto" /></td></tr>
+            ) : logs.length > 0 ? (
+              logs.map(log => (
+                <tr key={log._id} className="hover:bg-gray-700/20">
+                  <td className="py-3 px-4 text-gray-400">{new Date(log.timestamp).toLocaleString()}</td>
+                  <td className="py-3 px-4 text-gray-300 font-mono text-xs">{log.user_id}</td>
+                  <td className="py-3 px-4 font-semibold text-blue-300">{log.action.replace(/_/g, ' ')}</td>
+                  <td className="py-3 px-4 text-gray-400 font-mono text-xs">{JSON.stringify(log.details)}</td>
+                </tr>
+              ))
+            ) : (
+              <tr><td colSpan="4" className="text-center p-8 text-gray-500">No audit logs found.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+      {/* Pagination Controls */}
+      <div className="flex justify-between items-center mt-4 text-sm text-gray-400">
+        <span>Page {pagination.page} of {pagination.total_pages}</span>
+        <div className="flex gap-2">
+          <button onClick={() => fetchLogs(pagination.page - 1)} disabled={pagination.page <= 1} className="p-2 bg-gray-700 rounded-md disabled:opacity-50"><ChevronLeft className="h-4 w-4" /></button>
+          <button onClick={() => fetchLogs(pagination.page + 1)} disabled={pagination.page >= pagination.total_pages} className="p-2 bg-gray-700 rounded-md disabled:opacity-50"><ChevronRight className="h-4 w-4" /></button>
         </div>
-    );
+      </div>
+    </div>
+  );
 });
 
 
-// --- MAIN COMPONENT ---
-
+// --- Main Compliance Dashboard Component ---
 const ComplianceDashboard = ({ addNotification, onViewDetails }) => {
-  const { stats, alerts, loading, error, refetch } = useComplianceData();
-  const [isExporting, setIsExporting] = useState(false);
-  const [severityFilter, setSeverityFilter] = useState('all');
-  
-  const filteredAlerts = useMemo(() => {
-    if (severityFilter === 'all') return alerts;
-    return alerts.filter(alert => alert.severity.toLowerCase() === severityFilter);
-  }, [alerts, severityFilter]);
+  const [stats, setStats] = useState(null);
+  const [alerts, setAlerts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [resolving, setResolving] = useState({});
 
-  const handleExport = useCallback(async () => {
-    setIsExporting(true);
+  const fetchAlertsAndStats = useCallback(async () => {
+    setLoading(true);
     try {
-      const recordsToExport = await adminService.exportRecords();
-      if (recordsToExport?.length > 0) {
-        const csvData = transformRecordsForCSV(recordsToExport);
-        downloadCSVFromData(csvData, `kyc_compliance_report_${new Date().toISOString().split('T')[0]}.csv`);
-        addNotification('Report exported successfully!', 'info');
-      } else {
-        addNotification('No records available for export.', 'warning');
-      }
+      const [statsData, alertsData] = await Promise.all([
+        complianceService.getStats(),
+        complianceService.getAlerts()
+      ]);
+      setStats(statsData);
+      setAlerts(alertsData);
     } catch (err) {
-      addNotification(`Export failed: ${err.message}`, 'error');
+      addNotification(err.message || 'Failed to fetch compliance data.', 'error');
     } finally {
-      setIsExporting(false);
+      setLoading(false);
     }
   }, [addNotification]);
-  
-  if (loading) return <div className="min-h-[400px] flex items-center justify-center"><Loader className="h-12 w-12 animate-spin text-blue-400" /></div>;
-  if (error) return <div className="min-h-[400px] flex items-center justify-center text-red-400 bg-red-900/20 rounded-lg p-8">Error: {error}</div>;
+
+  useEffect(() => {
+    fetchAlertsAndStats();
+  }, [fetchAlertsAndStats]);
+
+  const handleResolve = async (alertId) => {
+    if (!alertId) {
+      addNotification('Cannot resolve: Alert ID is missing.', 'error');
+      return;
+    }
+    setResolving((prev) => ({ ...prev, [alertId]: true }));
+    try {
+      await complianceService.resolveAlert(alertId, 'Resolved by admin');
+      addNotification('Alert resolved successfully.', 'success');
+      // Refresh alerts and stats
+      fetchAlertsAndStats();
+    } catch (err) {
+      addNotification(err.message || 'Failed to resolve alert.', 'error');
+    } finally {
+      setResolving((prev) => ({ ...prev, [alertId]: false }));
+    }
+  };
+
+  if (loading) return <LoadingSpinner />;
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-        <header className="flex flex-col md:flex-row justify-between md:items-center gap-4">
-            <h2 className="text-3xl font-bold text-white flex items-center tracking-tight">
-                <Shield className="h-8 w-8 mr-3 text-blue-400" />
-                Compliance Overview
-            </h2>
-            <button
-                onClick={handleExport} disabled={isExporting}
-                className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center disabled:opacity-50 transition-colors"
-            >
-                {isExporting ? <Loader className="animate-spin h-5 w-5 mr-2" /> : <Download className="h-5 w-5 mr-2" />}
-                {isExporting ? 'Exporting...' : 'Export All Records (CSV)'}
-            </button>
-        </header>
+      <h2 className="text-3xl font-bold text-white tracking-tight">Compliance Overview</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="lg:col-span-1"><ComplianceGauge score={stats?.compliance_score || 0} /></div>
+        <StatCard title="Total Records Processed" value={stats?.total_records || 0} icon={BarChart3} color="blue" />
+        <StatCard title="Active High-Risk Alerts" value={stats?.active_alerts || 0} icon={AlertTriangle} color="red" />
+        <StatCard title="Alerts in Last 24h" value={stats?.recent_alerts_24h || 0} icon={Clock} color="yellow" />
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="lg:col-span-1"><ComplianceGauge score={Math.round(stats?.compliance_score || 0)} /></div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 lg:col-span-3 gap-6">
-              <StatCard title="Total Records" value={stats?.total_records || 0} icon={BarChart3} color="blue" />
-              <StatCard title="Active Alerts" value={stats?.active_alerts || 0} icon={AlertTriangle} color="red" />
-              <StatCard title="Alerts (24h)" value={stats?.recent_alerts_24h || 0} icon={Clock} color="yellow" />
-            </div>
+      {/* --- Fraud Alerts Table --- */}
+      <div className="bg-gray-800/50 p-6 rounded-xl border border-gray-700 mt-6">
+        <h3 className="text-xl font-bold text-white mb-4">Active Fraud Alerts</h3>
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead className="text-xs text-gray-400 uppercase">
+              <tr>
+                <th className="py-2 px-3">Alert ID</th>
+                <th className="py-2 px-3">Type</th>
+                <th className="py-2 px-3">Severity</th>
+                <th className="py-2 px-3">Message</th>
+                <th className="py-2 px-3">Created</th>
+                <th className="py-2 px-3">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-700/50">
+              {alerts.length === 0 ? (
+                <tr><td colSpan="6" className="text-center p-8 text-gray-500">No active alerts.</td></tr>
+              ) : (
+                alerts.map(alert => (
+                  <tr key={alert.alert_id} className="hover:bg-gray-700/20">
+                    <td className="py-2 px-3 font-mono text-xs text-gray-300">{alert.alert_id}</td>
+                    <td className="py-2 px-3 text-gray-400">{alert.alert_type}</td>
+                    <td className={`py-2 px-3 font-bold ${alert.severity === 'critical' ? 'text-red-400' : alert.severity === 'high' ? 'text-yellow-400' : 'text-gray-300'}`}>{alert.severity}</td>
+                    <td className="py-2 px-3 text-gray-300">{alert.message}</td>
+                    <td className="py-2 px-3 text-gray-400">{new Date(alert.created_at).toLocaleString()}</td>
+                    <td className="py-2 px-3">
+                      <button
+                        className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded disabled:opacity-50"
+                        disabled={!!resolving[alert.alert_id]}
+                        onClick={() => handleResolve(alert.alert_id)}
+                      >
+                        {resolving[alert.alert_id] ? 'Resolving...' : 'Resolve'}
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
+      </div>
 
-        <div className="bg-gray-800/50 p-6 rounded-xl border border-gray-700">
-            <div className="flex flex-col md:flex-row justify-between md:items-center mb-4 gap-4">
-                <h3 className="text-xl font-bold text-white">Active Fraud Alerts</h3>
-                <div className="relative">
-                    <select
-                        value={severityFilter}
-                        onChange={(e) => setSeverityFilter(e.target.value)}
-                        className="bg-gray-700/50 border border-gray-600 rounded-lg pl-3 pr-8 py-2 text-white appearance-none focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                    >
-                        <option value="all">All Severities</option>
-                        <option value="low">Low</option>
-                        <option value="medium">Medium</option>
-                        <option value="high">High</option>
-                    </select>
-                    <ChevronDown className="h-4 w-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"/>
-                </div>
-            </div>
-            <div className="space-y-3">
-                {filteredAlerts.length > 0 ? (
-                    filteredAlerts.map(alert => (
-                        <div key={alert.alert_id} className="bg-gray-900/50 p-4 rounded-lg flex items-center justify-between border border-gray-700/50 hover:border-blue-500/50 transition-colors">
-                            <div>
-                                <p className="font-semibold text-white">{alert.message}</p>
-                                <p className="text-sm text-gray-400">Severity: {alert.severity} | Confidence: {alert.confidence_score}%</p>
-                            </div>
-                            <button onClick={() => onViewDetails(alert.record_id)} className="text-sm font-semibold flex items-center gap-2 px-3 py-1.5 rounded-md bg-gray-700 hover:bg-gray-600 text-gray-200 transition-colors">
-                                <Eye className="h-4 w-4" /> View
-                            </button>
-                        </div>
-                    ))
-                ) : <p className="text-gray-400 text-center py-8">No active alerts match the current filter.</p>}
-            </div>
-        </div>
+      <AuditTrail />
     </motion.div>
   );
 };

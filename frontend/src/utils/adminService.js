@@ -2,33 +2,39 @@
 import api from './api';
 
 export const adminService = {
-  // Fetch all pending records for admin review
+  // Fetch all pending and flagged records for admin review
   getQueue: async () => {
     try {
       const response = await api.get('/admin/queue');
       return response.data.records || [];
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Failed to fetch admin queue');
+      throw new Error(error.response?.data?.error || 'Failed to fetch admin queue');
     }
   },
 
-  // Approve or reject a record
-  updateRecordStatus: async (recordId, action) => {
+  // Approve, reject, or flag a record with comments
+  // FIX: Added 'admin_comment' to the function to send review notes to the backend.
+  updateRecordStatus: async (recordId, action, admin_comment = '') => {
     try {
-      const response = await api.post(`/admin/record/${recordId}/decision`, { action });
+      const response = await api.post(`/admin/record/${recordId}/decision`, { 
+        action,
+        admin_comment 
+      });
       return response.data;
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Failed to update record status');
+      throw new Error(error.response?.data?.error || 'Failed to update record status');
     }
   },
 
   // Get a single record by ID (for admins)
   getRecordById: async (recordId) => {
     try {
-      const response = await api.get(`/admin/record/${recordId}`);
+      // Note: This endpoint is defined in your admin.py but may need implementation.
+      // For now, the main dashboard's record fetching is sufficient.
+      const response = await api.get(`/records/${recordId}`);
       return response.data.record;
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Failed to fetch record details');
+      throw new Error(error.response?.data?.error || 'Failed to fetch record details');
     }
   },
 
@@ -43,7 +49,7 @@ export const adminService = {
       const response = await api.get(`/admin/users?${params}`);
       return response.data;
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Failed to fetch users');
+      throw new Error(error.response?.data?.error || 'Failed to fetch users');
     }
   },
 
@@ -53,18 +59,19 @@ export const adminService = {
       const response = await api.put(`/admin/users/${userId}/role`, { role });
       return response.data;
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Failed to update user role');
+      throw new Error(error.response?.data?.error || 'Failed to update user role');
     }
   },
 
   // Get audit trail logs
   getAuditTrail: async (page = 1, limit = 15) => {
     try {
-      const params = new URLSearchParams({ page, limit });
+      const params = new URLSearchParams({ page: page.toString(), limit: limit.toString() });
+      // Use the correct endpoint registered in Flask: '/api/audit-trail'
       const response = await api.get(`/audit-trail?${params}`);
       return response.data;
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Failed to fetch audit trail');
+      throw new Error(error.response?.data?.error || 'Failed to fetch audit trail');
     }
   },
 
@@ -74,7 +81,7 @@ export const adminService = {
       const response = await api.get('/admin/records/export');
       return response.data.records || [];
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Failed to export records');
+      throw new Error(error.response?.data?.error || 'Failed to export records');
     }
   }
 };
