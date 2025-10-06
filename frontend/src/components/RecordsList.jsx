@@ -1,7 +1,7 @@
 // FILE: frontend/src/components/RecordsList.jsx
 import React, { memo } from 'react';
 import { motion } from 'framer-motion';
-import { Database, FileText, Eye, Trash2, Upload } from 'lucide-react';
+import { Database, FileText, Eye, Trash2, Upload, ShieldCheck } from 'lucide-react';
 import { recordsService } from '../utils/recordsService';
 
 // Reusable component for a single record card
@@ -54,6 +54,30 @@ const RecordCard = memo(({ record, StatusBadgeComponent, onViewRecord, onDeleteR
                 </div>
             </div>
             <div className="border-t border-gray-700/50 my-4"></div>
+                {/* Admin Review Section */}
+                {(record.admin_comment || record.decision) && (
+                    <>
+                        <div className="border-t border-gray-700/50 my-4"></div>
+                        <div className="bg-gray-900/40 rounded-lg p-4 mt-2">
+                            <h4 className="text-md font-semibold text-purple-300 mb-2 flex items-center">
+                                <ShieldCheck className="h-5 w-5 mr-2 text-green-400" />
+                                Admin Review
+                            </h4>
+                            {record.decision && (
+                                <div className="flex items-center gap-2 mb-2">
+                                    <span className="text-gray-400 text-xs">Decision:</span>
+                                    <span className="font-bold text-white capitalize">{record.decision}</span>
+                                </div>
+                            )}
+                            {record.admin_comment && (
+                                <div className="flex items-center gap-2">
+                                    <span className="text-gray-400 text-xs">Comment:</span>
+                                    <span className="text-white text-sm">{record.admin_comment}</span>
+                                </div>
+                            )}
+                        </div>
+                    </>
+                )}
             <div className="flex justify-end gap-3">
                 <button
                     onClick={() => onDeleteRecord(record._id)}

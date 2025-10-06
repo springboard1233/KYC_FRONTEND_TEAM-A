@@ -18,14 +18,24 @@ def serialize_record(record):
         return record.to_dict()
     
     # Handle raw PyMongo documents
-    if record.get("_id"):
-        record["_id"] = str(record["_id"])
-    if record.get("user_id"):
-        record["user_id"] = str(record["user_id"])
+    # Convert all ObjectId fields to strings
+    for k, v in record.items():
+        if isinstance(v, ObjectId):
+            record[k] = str(v)
     if record.get("created_at"):
         record["created_at"] = record["created_at"].isoformat()
     if record.get("updated_at"):
         record["updated_at"] = record["updated_at"].isoformat()
+    # Ensure admin_comment and decision are always present
+    record["admin_comment"] = record.get("admin_comment", "")
+    # Decision is now mapped from status for user clarity
+    status_map = {"approved": "approve", "rejected": "reject", "flagged": "flag"}
+    record["decision"] = status_map.get(record.get("status"), "")
+    # Ensure document integrity analysis fields are present and per-document
+    record["manipulation_result"] = record.get("manipulation_result", {})
+    record["duplicate_check"] = record.get("duplicate_check", {})
+    record["doc_hash"] = record.get("doc_hash", "")
+    record["processing_details"] = record.get("processing_details", {})
     return record
 
 @records_bp.route("/records", methods=["GET"])
@@ -58,7 +68,14 @@ def get_records():
             records_cursor = db.records.find(query).sort("created_at", -1).skip(skip).limit(per_page)
             total_count = db.records.count_documents(query)
 
-        records_list = [serialize_record(r) for r in records_cursor]
+        # Only allow records to be marked as approved/rejected/flagged if reviewed by admin
+        records_list = []
+        for r in records_cursor:
+            # Prevent auto-approval/rejection: Only allow status change if reviewed_by and reviewed_at are set
+            if r.get("status") in ["approved", "rejected", "flagged"]:
+                if not r.get("reviewed_by") or not r.get("reviewed_at"):
+                    r["status"] = "pending"
+            records_list.append(serialize_record(r))
         total_pages = (total_count + per_page - 1) // per_page
         
         logger.info(f"Fetched {len(records_list)} records for user {get_jwt_identity()} (admin={is_admin}).")

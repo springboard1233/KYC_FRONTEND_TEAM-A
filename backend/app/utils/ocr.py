@@ -211,13 +211,21 @@ class OCRProcessor:
 
             # Patterns for Name
             name_patterns = [r"Name[:\s]*([A-Za-z][A-Za-z\s\.]{2,40})"]
+            found_name = None
             for pattern in name_patterns:
                 match = re.search(pattern, text, re.IGNORECASE)
                 if match:
                     name = " ".join(match.group(1).strip().split())
                     if 2 < len(name) < 50:
-                        fields["name"] = name
+                        found_name = name
                         break
+            # Fallback: Use the longest capitalized word sequence if regex fails
+            if not found_name:
+                candidates = re.findall(r"([A-Z][a-z]+(?: [A-Z][a-z]+){0,3})", text)
+                if candidates:
+                    found_name = max(candidates, key=len)
+            if found_name:
+                fields["name"] = found_name
 
             # Patterns for Date of Birth
             dob_patterns = [

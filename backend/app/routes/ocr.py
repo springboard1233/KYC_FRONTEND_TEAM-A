@@ -56,33 +56,67 @@ def extract_document_info():
         
         logger.info(f"Forwarding request to AI service at {fastapi_url}")
         
-        api_response = requests.post(fastapi_url, json={
-            "file_path": file_path, "document_type": doc_type,
-            "user_id": current_user_id, "user_entered_name": user_entered_name
-        }, timeout=60)
-        
-        api_response.raise_for_status()
-        analysis_data = api_response.json()
-        logger.info(f"Received analysis from AI service: {analysis_data.get('status')}")
+        # --- PATCH: Run document integrity analysis directly ---
+        from ..utils.advanced_fraud_detection import AdvancedFraudDetector
+        detector = AdvancedFraudDetector()
+        manipulation_result = detector.detect_document_authenticity(file_path, doc_type)
 
-        # FIX: Extract all relevant nested data from the AI service response
-        # to be saved in the database record. This makes the data available to the frontend.
-        fraud_analysis = analysis_data.get('fraud_analysis', {})
-        manipulation_result = fraud_analysis.get('analysis_details', {}).get('manipulation_result', {})
-        
+        # Simulate fraud_analysis structure for compatibility
+        fraud_analysis = {
+            "fraud_score": manipulation_result.get("manipulation_score", 0.0),
+            "risk_category": manipulation_result.get("risk_level", "low"),
+            "risk_factors": manipulation_result.get("detected_issues", []),
+            "ai_confidence": manipulation_result.get("confidence", 0.0),
+            "ai_insights": manipulation_result.get("ai_insights", []),
+            "analysis_details": {
+                "manipulation_result": manipulation_result
+            }
+        }
+
+        # You may still want to run OCR extraction for fields
+        from ..utils.ocr import OCRProcessor
+        ocr = OCRProcessor()
+        ocr_result = ocr.process_document(file_path, doc_type)
+
+        # Document hash for duplicate detection
+        doc_hash = ocr_result.get('document_hash', None)
+        duplicate_check = {}
+        if doc_hash:
+            from ..utils.database import get_db
+            db = get_db()
+            duplicate = db.records.find_one({"doc_hash": doc_hash})
+            if duplicate:
+                duplicate_check = {"is_duplicate": True, "duplicate_id": str(duplicate.get('_id'))}
+            else:
+                duplicate_check = {"is_duplicate": False}
+
+        # AI name matching using actual extracted fields
+        from ..utils.advanced_fraud_detection import AdvancedFraudDetector
+        detector = AdvancedFraudDetector()
+        analysis = detector.analyze_document(
+            image_path=file_path,
+            extracted_fields=ocr_result.get('extracted_fields', {}),
+            user_entered_name=user_entered_name,
+            document_type=doc_type,
+            user_id=current_user_id
+        )
+
+        # Force status to 'pending' for all new submissions
         full_record = EnhancedRecord(
             user_id=current_user_id,
             document_type=doc_type,
             filename=filename,
             user_entered_name=user_entered_name,
-            status=analysis_data.get('status', 'pending'),
-            extracted_fields=analysis_data.get('extracted_fields', {}),
-            fraud_analysis=fraud_analysis,
-            manipulation_result=manipulation_result, # Save manipulation data
-            confidence_score=analysis_data.get('confidence_score', 0.0),
-            fraud_score=fraud_analysis.get('fraud_score', 0.0),
-            risk_category=fraud_analysis.get('risk_category', 'low'),
-            risk_factors=fraud_analysis.get('risk_factors', []) # Save risk factors
+            status='pending',
+            extracted_fields=ocr_result.get('extracted_fields', {}),
+            fraud_analysis=analysis.get('fraud_analysis', {}),
+            manipulation_result=analysis.get('manipulation_result', {}),
+            confidence_score=ocr_result.get('confidence_score', 0.0),
+            fraud_score=analysis.get('fraud_analysis', {}).get('fraud_score', 0.0),
+            risk_category=analysis.get('fraud_analysis', {}).get('risk_category', 'low'),
+            risk_factors=analysis.get('fraud_analysis', {}).get('risk_factors', []),
+            doc_hash=doc_hash,
+            duplicate_check=duplicate_check
         )
         full_record.save()
         logger.info(f"Successfully saved full analysis for record {full_record._id}")

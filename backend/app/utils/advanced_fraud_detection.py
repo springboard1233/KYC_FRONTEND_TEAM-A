@@ -79,26 +79,16 @@ class AdvancedFraudDetector:
         """
         Main analysis method called by the OCR route.
         This acts as a wrapper for detect_document_authenticity and formats the output.
-        For demo/testing, returns realistic, variable data for all fields.
+        All analysis is based on actual document content and extracted fields.
         """
-        import random
-        # Simulate manipulation detection
-        manipulation_score = random.uniform(10, 95)
-        risk_level = random.choices(["low", "medium", "high", "critical"], weights=[0.5, 0.25, 0.2, 0.05])[0]
-        detected_issues = []
-        if manipulation_score > 70:
-            detected_issues.append("Possible forgery detected")
-        elif manipulation_score > 40:
-            detected_issues.append("Suspicious region detected")
-        ai_insights = ["AI detected unusual pattern"] if manipulation_score > 60 else []
+        manipulation_result = self.detect_document_authenticity(image_path, document_type)
 
-        # Simulate AI confidence
-        ai_confidence = random.uniform(60, 99)
-
-        # Simulate name matching
+        # Name matching: use fuzzy string similarity
+        from fuzzywuzzy import fuzz
         name_matching_result = {"score": 0, "match_status": "not_available"}
-        if user_entered_name and extracted_fields.get("name"):
-            similarity_score = random.randint(50, 100)
+        extracted_name = extracted_fields.get("name", "")
+        if user_entered_name and extracted_name:
+            similarity_score = fuzz.ratio(user_entered_name.lower(), extracted_name.lower())
             name_matching_result["score"] = similarity_score
             if similarity_score >= 85:
                 name_matching_result["match_status"] = "high"
@@ -107,29 +97,21 @@ class AdvancedFraudDetector:
             else:
                 name_matching_result["match_status"] = "low"
 
-        # Simulate fraud score and risk
-        fraud_score = manipulation_score if risk_level in ["high", "critical"] else random.uniform(10, 60)
-
         fraud_analysis = {
-            "fraud_score": round(fraud_score, 2),
-            "risk_category": risk_level,
-            "risk_factors": detected_issues,
-            "ai_confidence": round(ai_confidence, 2),
-            "ai_insights": ai_insights,
+            "fraud_score": manipulation_result.get("manipulation_score", 0.0),
+            "risk_category": manipulation_result.get("risk_level", "low"),
+            "risk_factors": manipulation_result.get("detected_issues", []),
+            "ai_confidence": manipulation_result.get("confidence", 0.0),
+            "ai_insights": manipulation_result.get("ai_insights", []),
             "analysis_details": {
                 "name_matching_result": name_matching_result,
-                "manipulation_result": {
-                    "manipulation_score": round(manipulation_score, 2),
-                    "risk_level": risk_level,
-                    "detected_issues": detected_issues,
-                    "ai_insights": ai_insights,
-                },
+                "manipulation_result": manipulation_result,
             },
         }
 
         return {
             "fraud_analysis": fraud_analysis,
-            "manipulation_result": fraud_analysis["analysis_details"]["manipulation_result"],
+            "manipulation_result": manipulation_result,
         }
 
     def detect_document_authenticity(
