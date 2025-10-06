@@ -41,6 +41,10 @@ const RecordCard = memo(({ record, StatusBadgeComponent, onViewRecord, onDeleteR
                     <p className="font-medium text-gray-200 mt-1">{new Date(record.created_at).toLocaleDateString()}</p>
                 </div>
                 <div>
+                                            <p className="text-xs text-gray-400 mt-1">Status: <span className="font-bold text-white">{record.status}</span></p>
+                                            {record.duplicate_check?.is_duplicate && (
+                                                <p className="text-xs text-red-400 mt-1">Duplicate Document Detected</p>
+                                            )}
                     <p className="text-gray-400 text-xs">Fraud Score</p>
                     <p className="font-bold text-lg text-white mt-1">{record.fraud_score?.toFixed(0) ?? 'N/A'}%</p>
                 </div>
@@ -48,6 +52,42 @@ const RecordCard = memo(({ record, StatusBadgeComponent, onViewRecord, onDeleteR
                     <p className="text-gray-400 text-xs">Risk Level</p>
                     <p className="font-medium text-gray-200 mt-1 capitalize">{record.risk_category || 'N/A'}</p>
                 </div>
+                                {/* Extracted Details Section */}
+                                <div className="mb-2">
+                                    <h4 className="text-md font-semibold text-blue-300 mb-2">Extracted Details</h4>
+                                    {record.extracted_fields && Object.keys(record.extracted_fields).length > 0 ? (
+                                        <ul className="text-sm text-gray-200 space-y-1">
+                                            {Object.entries(record.extracted_fields).map(([key, value]) => (
+                                                <li key={key}><span className="text-gray-400 capitalize">{key.replace(/_/g, ' ')}:</span> <span className="font-bold">{value || 'N/A'}</span></li>
+                                            ))}
+                                        </ul>
+                                    ) : (
+                                        <p className="text-gray-500 text-sm">No details extracted.</p>
+                                    )}
+                                </div>
+                                {/* AI Name Matching Section */}
+                                {record.fraud_analysis?.analysis_details?.name_matching_result && (
+                                    <div className="mb-2">
+                                        <h4 className="text-md font-semibold text-purple-300 mb-2">AI Name Matching</h4>
+                                        <p className="text-sm text-gray-300">Status: <span className="font-bold text-white">{record.fraud_analysis.analysis_details.name_matching_result.match_status}</span></p>
+                                        <p className="text-sm text-gray-300">Similarity: <span className="font-bold text-white">{record.fraud_analysis.analysis_details.name_matching_result.score}%</span></p>
+                                    </div>
+                                )}
+                                {/* Document Manipulation & Fraud Analysis Section */}
+                                {record.manipulation_result && (
+                                    <div className="mb-2">
+                                        <h4 className="text-md font-semibold text-pink-300 mb-2">Document Integrity & AI Fraud Analysis</h4>
+                                        <p className="text-sm text-gray-300">Manipulation Score: <span className="font-bold text-white">{record.manipulation_result.manipulation_score}%</span></p>
+                                        <p className="text-sm text-gray-300">Risk Level: <span className="font-bold text-white">{record.manipulation_result.risk_level}</span></p>
+                                        {record.manipulation_result.detected_issues && record.manipulation_result.detected_issues.length > 0 && (
+                                            <ul className="text-xs text-red-400 mt-1">
+                                                {record.manipulation_result.detected_issues.map((issue, idx) => (
+                                                    <li key={idx}>{issue}</li>
+                                                ))}
+                                            </ul>
+                                        )}
+                                    </div>
+                                )}
                 <div>
                     <p className="text-gray-400 text-xs">Confidence</p>
                     <p className="font-medium text-gray-200 mt-1">{record.confidence_score?.toFixed(0) ?? 'N/A'}%</p>

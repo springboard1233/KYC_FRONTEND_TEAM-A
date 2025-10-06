@@ -1,0 +1,42 @@
+services:
+  - type: web
+    name: kyc-flask-backend
+    env: python
+    plan: starter
+    buildCommand: ""
+    startCommand: gunicorn --bind 0.0.0.0:5001 app.routes.flask_app:app
+    envVars:
+      - key: MONGODB_URI
+        value: <your-mongodb-uri>
+      - key: JWT_SECRET_KEY
+        value: <your-jwt-secret>
+      - key: FRONTEND_URL
+        value: https://<your-vercel-app>.vercel.app
+      - key: OCR_API_KEY
+        value: <your-ocr-api-key>
+      - key: AML_API_KEY
+        value: <your-aml-api-key>
+    dockerfilePath: ./Dockerfile.flask
+    autoDeploy: true
+    region: oregon
+
+  - type: web
+    name: aml-fastapi-backend
+    env: python
+    plan: starter
+    buildCommand: ""
+    startCommand: uvicorn aml_compliance_service:app --host 0.0.0.0 --port 8001
+    envVars:
+      - key: MONGODB_URI
+        value: <your-mongodb-uri>
+      - key: JWT_SECRET_KEY
+        value: <your-jwt-secret>
+      - key: FRONTEND_URL
+        value: https://<your-vercel-app>.vercel.app
+      - key: OCR_API_KEY
+        value: <your-ocr-api-key>
+      - key: AML_API_KEY
+        value: <your-aml-api-key>
+    dockerfilePath: ./Dockerfile.fastapi
+    autoDeploy: true
+    region: oregon
