@@ -1,4 +1,4 @@
-# AI-Powered KYC Verification & Fraud Detection System
+# AI-Powered Identity Verification and Fraud Detection for KYC Compliance
 
 This is a full-stack web application designed to automate the Know Your Customer (KYC) process using a powerful AI pipeline. It analyzes uploaded identity documents (like Aadhaar and PAN cards) to extract information, detect fraud, and provide a comprehensive review dashboard for administrators.
 
