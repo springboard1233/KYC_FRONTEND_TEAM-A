@@ -1,68 +1,64 @@
-# AI-Powered Identity Verification and Fraud Detection for KYC_FRONTEND_TEAM-A
+# AI-KYC Fraud Detection  
+**AI-Powered Identity Verification & Fraud Detection for KYC Compliance**
 
-Build a smart AI system that:
+---
 
-Verifies customer identity using documents like Aadhaar.
+## 🧭 Project Overview  
+This project aims to build a robust, end-to-end **KYC / identity verification system** using AI and data-driven techniques. It will:  
+- Accept user documents (e.g. Aadhaar, utility bills)  
+- Extract identity information using OCR  
+- Detect fraud / tampering / duplicates  
+- Provide a scoring & alert system for compliance officers  
 
-Detects fraud, especially fake or mismatched addresses.
+**Use cases:**  
+- Banking onboarding  
+- Financial services  
+- Identity verification for regulatory compliance  
 
-Ensures banks comply with KYC and AML rules.
+---
 
-Reduces manual verification efforts.
+## 📋 Milestones & Features  
 
-## Technologies Involved:
-NLP (via Azure OpenAI): Read and understand text on documents.
+### 🚀 Milestone 1: OCR & Data Extraction  
+- Collect synthetic Aadhaar/utility bill docs (15–20).  
+- OCR using **Pytesseract / EasyOCR**.  
+- Extract key fields: **Name, Aadhaar, Address**.  
+- Clean & normalize → store in **JSON/CSV**.  
+- **Frontend**: Upload UI, validations, OCR results preview.  
+- **Backend**: REST APIs for upload, OCR, user docs storage.  
 
-Computer Vision: Check document layout, format, and tampering.
+### 🚀 Milestone 2: Fraud Detection & Verification  
+- Fake Aadhaar/PAN detection (regex, mock DB check).  
+- Duplicate detection via DB + hashing.  
+- AI-powered name matching (FuzzyWuzzy/spaCy).  
+- Document tampering check (heuristics / CNN planned).  
+- Fraud risk scoring (Low/Medium/High).  
+- **Frontend**: Verification dashboard, fraud score charts.  
+- **Backend**: APIs → `/verify-doc`, `/fraud-score`.  
 
-GNN (Graph Neural Networks): Spot fake identities by analyzing relationships between data points.
+### 🚀 Milestone 3: Real-Time Pipeline & AML Compliance  
+- Wrap models (OCR/NLP/CNN/GNN) into APIs.  
+- Real-time fraud alert pipeline (async queue).  
+- Compliance rules + alert logging.  
+- **Frontend**: Compliance officer dashboard (Verified/Flagged/Pending).  
+- **Backend**: Endpoints for fraud check, AML alerts, logs.  
 
-Azure or Local Deployment: Secure deployment and compliance-ready logging.
+### 🚀 Milestone 4: Deployment & Final Delivery  
+- Integrate all milestones → full stack app.  
+- CNN/GNN for fraud detection.  
+- AML integration.  
+- Deploy via Docker / Cloud.  
+- Final dashboards + reports.  
 
+---
 
-Tasks:
-Containerize models using Docker (intro level).
+## 🛠️ Tech Stack  
 
-Use synthetic Aadhaar data to validate system.
+**Frontend**: React.js, TailwindCSS, Recharts/Chart.js  
+**Backend**: Node.js (Express), Tesseract.js, Python (OCR/ML services)  
+**Database**: MongoDB (flexible for document data)  
+**AI/ML**: Pytesseract, EasyOCR, FuzzyWuzzy, spaCy, scikit-learn, CNN/GNN   
+**Infra**: Kafka/RabbitMQ (for streaming alerts), Docker  
 
-Build a report: number of frauds flagged, accuracy, false positives, etc.
-
-If Azure is used, test model deployment via Azure ML or App Services.
-
-##Tools & Stack Suggestions :-
-
-OCR: Tesseract, EasyOCR
-
-NLP: Azure OpenAI, LangChain, HuggingFace Transformers
-
-CV: OpenCV, CNN (ResNet)
-
-GNN: PyTorch Geometric / DGL
-
-Backend: Flask or FastAPI
-
-Deployment: Docker + Streamlit (optional UI)
-
-Data: Synthetic Aadhaar/Utility docs or sample KYC data
-
-Version Control: Git + GitHub for collaboration
-
-## Suggested Folder Structure :-
-
-project_root/
-│
-├── data/
-│   ├── raw_docs/
-│   ├── processed_data.csv
-│
-├── ocr/
-│   ├── ocr_extractor.py
-│   └── field_extractor.py
-│
-├── utils/
-│   └── cleaning_utils.py
-│
-├── README.md
-└── requirements.txt
-
+---
 
